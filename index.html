@@ -13,10 +13,19 @@
     <title>Socket.IO chat</title>
   </head>
   <body>
-    <ul id="messages"></ul>
+    <header>
+      <h1 id="title">Choose room</h1>
+      <button id="exit" class="hidden">exit</button>
+    </header>
+    <ul id="rooms">
+      <li><button class="room-selector">Food</button></li>
+      <li><button class="room-selector">Games</button></li>
+      <li><button class="room-selector">Sports</button></li>
+    </ul>
+    <ul id="messages" class="hidden"></ul>
     <form id="chat-form" action="">
       <input name="message" autocomplete="off" />
-      <input type="submit" value="Send" />
+      <input id="chat-submit" disabled type="submit" value="Send" />
     </form>
   </body>
 </html>

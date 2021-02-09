@@ -1,3 +1,7 @@
+ul {
+  list-style: none;
+}
+
 body {
   margin: 0;
   padding-bottom: 3rem;
@@ -29,7 +33,7 @@ input[name="message"]:focus {
   outline: none;
 }
 
-#chat-form > input[type="submit"] {
+input[type="submit"] {
   background: #333;
   border: none;
   padding: 0 1rem;
@@ -37,6 +41,7 @@ input[name="message"]:focus {
   border-radius: 3px;
   outline: none;
   color: #fff;
+  cursor: pointer;
 }
 
 #messages {
@@ -56,4 +61,47 @@ input[name="message"]:focus {
 
 .receiver {
   background-color: rgba(185, 185, 185, 0.2);
+}
+
+.hidden {
+  display: none;
+}
+
+input:disabled {
+  background-color: rgba(193, 193, 193, 0.765);
+  cursor: default;
+}
+
+.room-selector {
+  border-radius: 2px;
+  border: none;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  background-color: rgba(160, 236, 236, 0.745);
+}
+
+button:hover {
+  background-color: rgba(151, 237, 237, 0.95);
+}
+
+header {
+  display: flex;
+  align-items: center;
+}
+
+#exit {
+  border: none;
+  background-color: rgba(244, 119, 119, 0.765);
+  height: 50%;
+  width: 10%;
+  margin-left: 2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+#exit:hover {
+  background-color: rgba(237, 128, 128, 0.984);
 }

@@ -1,4 +1,4 @@
-const backendURL = 'http://localhost:9000' ;
+const backendURL = 'https://livestchat.herokuapp.com/';
 
 const socket = io(backendURL);
 let socketId;

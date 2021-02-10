@@ -98,7 +98,7 @@ header {
   font-weight: 900;
 }
 
-#exit {
+#exit-room {
   border: none;
   background-color: rgba(244, 119, 119, 0.765);
   height: 30%;
@@ -112,7 +112,7 @@ header {
   cursor: pointer;
 }
 
-#exit:hover {
+#exit-room:hover {
   background-color: rgba(237, 128, 128, 0.984);
 }
 

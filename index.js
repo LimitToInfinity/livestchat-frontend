@@ -31,13 +31,17 @@ function setupSocket(username) {
   socket.on('connect', () => socketId = socket.id);
   socket.on('room message', message => displayMessage(message, false));
   socket.on('someone left', removePerson);
+  socket.on('someone joined', addPerson);
 }
 
-function removePerson(person) {
-  const allChatterButtons = Array.from(document.querySelectorAll('.chatter'));
-  const leavingChatter = allChatterButtons
-    .find(chatter => chatter.textContent === person)
-    .parentNode;
+function addPerson(username) {
+  console.log('add person', username);
+  displayPerson(username);
+}
+
+function removePerson(username) {
+  console.log('remove person', username);
+  const leavingChatter = findChatter(username);
   leavingChatter.remove();
 }
 
@@ -60,11 +64,11 @@ function displayPeople(people) {
   people.forEach(displayPerson);
 }
 
-function displayPerson(person) {
+function displayPerson(username) {
   const personDisplay = document.createElement('li');
   const personButton = document.createElement('button');
   personButton.classList.add('chatter');
-  personButton.textContent = person;
+  personButton.textContent = username;
   personDisplay.append(personButton);
   chatters.append(personDisplay);
 }
@@ -101,6 +105,13 @@ function displayMessage(message, isSender) {
   messageDisplay.textContent = message;
   messages.append(messageDisplay);
   window.scrollTo(0, document.body.scrollHeight);
+}
+
+function findChatter(username) {
+  const allChatterButtons = Array.from(document.querySelectorAll('.chatter'));
+  return allChatterButtons
+    .find(chatter => chatter.textContent === username)
+    .parentNode;
 }
 
 function getFormData(form, ...inputs) {

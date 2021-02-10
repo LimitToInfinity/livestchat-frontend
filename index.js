@@ -1,22 +1,50 @@
 const backendURL = 'https://livestchat.herokuapp.com/';
 // const backendURL = 'http://localhost:9000';
 
-const socket = io(backendURL);
+let socket;
 let socketId;
 
+const modal = document.querySelector('#modal');
+const enterChat = document.querySelector('#enter-chat');
 const title = document.querySelector('#title');
 const exit = document.querySelector('#exit');
 const chatForm = document.querySelector('#chat-form');
 const chatSubmit = document.querySelector('#chat-submit');
 const rooms = document.querySelector('#rooms');
+const chatters = document.querySelector('#chatters');
 const messages = document.querySelector('#messages');
+
+enterChat.addEventListener('submit', event => {
+  event.preventDefault();
+
+  modal.classList.add('hidden');
+  const enterChatFormData = new FormData(event.target);
+  const username = enterChatFormData.get('username');
+
+  socket = io(backendURL, { query: `name=${username}` });
+  socket.on('connect', () => socketId = socket.id);
+  socket.on('room message', message => {
+    console.log('room');
+    displayMessage(message, false);
+  });
+})
 
 rooms.addEventListener('click', event => {
   const { classList, textContent } = event.target;
 
   if (classList.contains('room-selector')) {
     console.log(textContent);
-    socket.emit('join room', textContent);
+    socket.emit('join room', textContent, people => {
+      chatters.classList.remove('hidden');
+      people.forEach(person => {
+        const personDisplay = document.createElement('li');
+        const personButton = document.createElement('button');
+        personButton.classList.add('chatter');
+        personButton.textContent = person;
+        personDisplay.append(personButton);
+        chatters.append(personDisplay);
+      })
+    });
   }
 
   rooms.classList.add('hidden');
@@ -36,6 +64,8 @@ exit.addEventListener('click', () => {
   messages.innerHTML = ''
   messages.classList.add('hidden');
   exit.classList.add('hidden');
+  chatters.innerHTML = '';
+  chatters.classList.add('hidden');
 })
 
 chatForm.addEventListener('submit', event => {
@@ -52,13 +82,6 @@ chatForm.addEventListener('submit', event => {
     displayMessage(chatMessage, true);
     event.target.reset();
   }
-});
-
-socket.on('connect', () => socketId = socket.id);
-
-socket.on('room message', message => {
-  console.log('room');
-  displayMessage(message, false);
 });
 
 function displayMessage(message, isSender) {

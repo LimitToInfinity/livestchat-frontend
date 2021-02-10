@@ -1,53 +1,160 @@
-ul {
-  list-style: none;
+/* http://meyerweb.com/eric/tools/css/reset/ 
+  v2.0 | 20110126
+  License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+/* END MEYER RESET */
+
+#modal {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  z-index: 500;
+  background-color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+#enter-chat {
+  display: flex;
+  flex-direction: column;
+}
+
+#enter-chat label, #chat-username {
+  margin-bottom: 1rem;
+}
+
+#enter-chat input[type="submit"] {
+  background-color: rgba(0, 0, 0, 0.589);
+}
+
+#enter-chat input[type="submit"]:hover {
+  background-color: rgba(27, 27, 27, 0.827)
 }
 
 body {
   margin: 0;
-  padding-bottom: 3rem;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  height: 100vh;
+  width: 100vw;
 }
 
-#chat-form {
-  background: rgba(0, 0, 0, 0.15);
-  padding: 0.25rem;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+header {
   display: flex;
-  height: 3rem;
-  box-sizing: border-box;
-  backdrop-filter: blur(10px);
-}
-
-input[name="message"] {
-  border: none;
+  align-items: center;
+  height: 15%;
+  width: 100%;
   padding: 0 1rem;
-  flex-grow: 1;
-  border-radius: 2rem;
-  margin: 0.25rem;
 }
 
-input[name="message"]:focus {
-  outline: none;
+#title {
+  font-size: 1.5rem;
+  font-weight: 900;
 }
 
-input[type="submit"] {
-  background: #333;
+#exit {
   border: none;
-  padding: 0 1rem;
-  margin: 0.25rem;
-  border-radius: 3px;
-  outline: none;
-  color: #fff;
+  background-color: rgba(244, 119, 119, 0.765);
+  height: 30%;
+  width: 10%;
+  min-width: 30px;
+  max-width: 60px;
+  margin-left: 2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
   cursor: pointer;
 }
 
+#exit:hover {
+  background-color: rgba(237, 128, 128, 0.984);
+}
+
+main {
+  height: 70%;
+  width: 100%;
+  display: flex;
+}
+
+aside {
+  width: 15%;
+}
+
+.room-selector {
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  background-color: rgba(160, 236, 236, 0.745);
+  width: 100%;
+}
+
+.room-selector:hover {
+  background-color: rgba(151, 237, 237, 0.95);
+}
+
+.chatter {
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  background-color: rgba(175, 233, 197, 0.745);
+  width: 100%;
+  text-align: center;
+}
+
+.chatter:hover {
+  background-color: rgba(152, 239, 197, 0.95);
+}
+
 #messages {
-  list-style-type: none;
   margin: 0;
   padding: 0;
+  width: 85%;
 }
 
 #messages > li {
@@ -63,8 +170,44 @@ input[type="submit"] {
   background-color: rgba(185, 185, 185, 0.2);
 }
 
-.hidden {
-  display: none;
+footer {
+  height: 15%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+#chat-form {
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.25rem;
+  display: flex;
+  height: 3rem;
+  box-sizing: border-box;
+  backdrop-filter: blur(10px);
+}
+
+input[name="message"] {
+  border: none;
+  padding: 0 1rem;
+  flex-grow: 1;
+  border-radius: 2rem;
+  margin: 0 0.25rem;
+}
+
+input[name="message"]:focus {
+  outline: none;
+}
+
+input[type="submit"] {
+  background: #333;
+  border: none;
+  padding: 0 1rem;
+  margin: 0 0.25rem;
+  border-radius: 3px;
+  outline: none;
+  color: #fff;
+  cursor: pointer;
 }
 
 input:disabled {
@@ -72,36 +215,6 @@ input:disabled {
   cursor: default;
 }
 
-.room-selector {
-  border-radius: 2px;
-  border: none;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  background-color: rgba(160, 236, 236, 0.745);
-}
-
-button:hover {
-  background-color: rgba(151, 237, 237, 0.95);
-}
-
-header {
-  display: flex;
-  align-items: center;
-}
-
-#exit {
-  border: none;
-  background-color: rgba(244, 119, 119, 0.765);
-  height: 50%;
-  width: 10%;
-  margin-left: 2rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 2px;
-  font-size: 0.7rem;
-  cursor: pointer;
-}
-
-#exit:hover {
-  background-color: rgba(237, 128, 128, 0.984);
+.hidden {
+  display: none !important;
 }

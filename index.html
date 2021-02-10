@@ -13,19 +13,36 @@
     <title>Socket.IO chat</title>
   </head>
   <body>
+    <div id="modal">
+      <form id="enter-chat">
+        <label for="chat-username">Username to enter</label>
+        <input id="chat-username" type="text" name="username" />
+        <input type="submit" value="enter" />
+      </form>
+    </div>
+
     <header>
-      <h1 id="title">Choose room</h1>
+      <h1 id="title">Choose a room</h1>
       <button id="exit" class="hidden">exit</button>
     </header>
-    <ul id="rooms">
-      <li><button class="room-selector">Food</button></li>
-      <li><button class="room-selector">Games</button></li>
-      <li><button class="room-selector">Sports</button></li>
-    </ul>
-    <ul id="messages" class="hidden"></ul>
-    <form id="chat-form" action="">
-      <input name="message" autocomplete="off" />
-      <input id="chat-submit" disabled type="submit" value="Send" />
-    </form>
+
+    <main>
+      <aside>
+        <ul id="rooms">
+          <li><button class="room-selector">Food</button></li>
+          <li><button class="room-selector">Games</button></li>
+          <li><button class="room-selector">Sports</button></li>
+        </ul>
+        <ul id="chatters" class="hidden"></ul>
+      </aside>
+      <ul id="messages"></ul>
+    </main>
+
+    <footer>
+      <form id="chat-form" action="">
+        <input name="message" autocomplete="off" />
+        <input id="chat-submit" disabled type="submit" value="Send" />
+      </form>
+    </footer>
   </body>
 </html>

@@ -85,10 +85,10 @@ function handleChatMessage(event) {
   event.preventDefault();
   const { dataset: { room } } = event.target;
 
-  const { chatMessage } = getFormData(event.target, 'message');
-  if (chatMessage) {
-    socket.emit('room message', room, chatMessage);
-    displayMessage(chatMessage, true);
+  const { message } = getFormData(event.target, 'message');
+  if (message) {
+    socket.emit('room message', room, message);
+    displayMessage(message, true);
     event.target.reset();
   }
 }

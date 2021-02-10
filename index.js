@@ -8,6 +8,7 @@ const modal = document.querySelector('#modal');
 const enterChat = document.querySelector('#enter-chat');
 const title = document.querySelector('#title');
 const exitRoom = document.querySelector('#exit-room');
+const user = document.querySelector('#user');
 const chatForm = document.querySelector('#chat-form');
 const chatSubmit = document.querySelector('#chat-submit');
 const rooms = document.querySelector('#rooms');
@@ -23,6 +24,7 @@ function handleEnteringChat(event) {
   event.preventDefault();
   modal.classList.add('hidden');
   const { username } = getFormData(event.target, 'username');
+  user.textContent = username;
   setupSocket(username);
 }
 
@@ -31,16 +33,10 @@ function setupSocket(username) {
   socket.on('connect', () => socketId = socket.id);
   socket.on('room message', message => displayMessage(message, false));
   socket.on('someone left', removePerson);
-  socket.on('someone joined', addPerson);
-}
-
-function addPerson(username) {
-  console.log('add person', username);
-  displayPerson(username);
+  socket.on('someone joined', displayPerson);
 }
 
 function removePerson(username) {
-  console.log('remove person', username);
   const leavingChatter = findChatter(username);
   leavingChatter.remove();
 }

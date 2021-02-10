@@ -88,14 +88,27 @@ body {
 header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 15%;
   width: 100%;
-  padding: 0 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.header-right {
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 #title {
   font-size: 1.5rem;
   font-weight: 900;
+  padding-left: 1rem;
 }
 
 #exit-room {
@@ -114,6 +127,12 @@ header {
 
 #exit-room:hover {
   background-color: rgba(237, 128, 128, 0.984);
+}
+
+#user {
+  font-weight: 900;
+  padding-right: 5rem;
+  color: rgb(73 171 255);
 }
 
 main {

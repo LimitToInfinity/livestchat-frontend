@@ -136,7 +136,7 @@ header {
 }
 
 main {
-  height: 70%;
+  height: 75%;
   width: 100%;
   display: flex;
 }
@@ -174,6 +174,7 @@ aside {
   margin: 0;
   padding: 0;
   width: 85%;
+  overflow: scroll;
 }
 
 #messages > li {
@@ -225,7 +226,7 @@ aside {
 }
 
 footer {
-  height: 15%;
+  height: 10%;
   width: 100%;
   display: flex;
   flex-direction: column;

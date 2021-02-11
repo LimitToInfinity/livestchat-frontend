@@ -114,7 +114,7 @@ function displayMessage(message, username, isSender) {
 
   messageDisplay.append(usernameDisplay, messageText, timestamp);
   messages.append(messageDisplay);
-  window.scrollTo(0, document.body.scrollHeight);
+  messages.scrollTo(0, messages.scrollHeight);
 }
 
 function findChatter(username) {

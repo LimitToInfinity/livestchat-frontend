@@ -1,5 +1,5 @@
-// const backendURL = 'https://livestchat.herokuapp.com/';
-const backendURL = 'http://localhost:9000';
+const backendURL = 'https://livestchat.herokuapp.com/';
+// const backendURL = 'http://localhost:9000';
 
 let socket;
 let socketId;

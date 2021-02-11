@@ -193,12 +193,13 @@ aside {
 .username {
   font-weight: 900;
   font-size: 0.5rem;
+  padding-bottom: 0.2rem;
 }
 .sender .username {
   color: rgb(249, 194, 95);
 }
 .receiver .username {
-  color: rgb(105, 249, 95);
+  color: rgb(23, 179, 12);;
 }
 
 .chat-message {
@@ -220,6 +221,7 @@ aside {
 .timestamp {
   color: rgb(176, 176, 176);
   font-size: 0.5rem;
+  padding-top: 0.2rem;
 }
 
 footer {

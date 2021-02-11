@@ -178,15 +178,48 @@ aside {
 
 #messages > li {
   padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .sender {
-  background-color: rgba(146, 244, 253, 0.2);
-  text-align: right;
+  align-items: flex-end;
 }
 
 .receiver {
+  align-items: flex-start;
+}
+
+.username {
+  font-weight: 900;
+  font-size: 0.5rem;
+}
+.sender .username {
+  color: rgb(249, 194, 95);
+}
+.receiver .username {
+  color: rgb(105, 249, 95);
+}
+
+.chat-message {
+  color: rgb(121, 121, 121);
+  padding: 0.4rem 0.6rem;
+  border-radius: 12px;
+}
+
+.sender .chat-message {
+  background-color: rgba(146, 244, 253, 0.2);
+  border-top-right-radius: 0px;
+}
+
+.receiver .chat-message {
   background-color: rgba(185, 185, 185, 0.2);
+  border-top-left-radius: 0px;
+}
+
+.timestamp {
+  color: rgb(176, 176, 176);
+  font-size: 0.5rem;
 }
 
 footer {

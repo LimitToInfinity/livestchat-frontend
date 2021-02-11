@@ -1,5 +1,5 @@
-const backendURL = 'https://livestchat.herokuapp.com/';
-// const backendURL = 'http://localhost:9000';
+// const backendURL = 'https://livestchat.herokuapp.com/';
+const backendURL = 'http://localhost:9000';
 
 let socket;
 let socketId;
@@ -29,9 +29,9 @@ function handleEnteringChat(event) {
 }
 
 function setupSocket(username) {
-  socket = io(backendURL, { query: `name=${username}` });
+  socket = io(backendURL, { query: { username } });
   socket.on('connect', () => socketId = socket.id);
-  socket.on('room message', message => displayMessage(message, false));
+  socket.on('room message', (message, name) => displayMessage(message, name, false));
   socket.on('someone left', removePerson);
   socket.on('someone joined', displayPerson);
 }
@@ -87,18 +87,32 @@ function handleChatMessage(event) {
 
   const { message } = getFormData(event.target, 'message');
   if (message) {
+    const { username } = socket.io.opts.query;
     socket.emit('room message', room, message);
-    displayMessage(message, true);
+    displayMessage(message, username, true);
     event.target.reset();
   }
 }
 
-function displayMessage(message, isSender) {
+function displayMessage(message, username, isSender) {
   const messageDisplay = document.createElement('li');
   isSender
     ? messageDisplay.classList.add('sender')
     : messageDisplay.classList.add('receiver');
-  messageDisplay.textContent = message;
+
+  const usernameDisplay = document.createElement('h6');
+  usernameDisplay.textContent = username;
+  usernameDisplay.classList.add('username');
+
+  const messageText = document.createElement('p');
+  messageText.textContent = message;
+  messageText.classList.add('chat-message');
+
+  const timestamp = document.createElement('p');
+  timestamp.textContent = getCurrentTime();
+  timestamp.classList.add('timestamp');
+
+  messageDisplay.append(usernameDisplay, messageText, timestamp);
   messages.append(messageDisplay);
   window.scrollTo(0, document.body.scrollHeight);
 }
@@ -136,4 +150,30 @@ function disable(...elements) {
 
 function enable(...elements) {
   elements.forEach(element => element.disabled = false);
+}
+
+function getCurrentTime() {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = formatMinutes(now.getMinutes());
+  return formatTwelveHourTime(hours, minutes);
+}
+
+function formatMinutes(minutes) {
+  if (minutes > 9) {
+    return minutes;
+  }
+  return `0${minutes}`
+}
+
+function formatTwelveHourTime(hours, minutes) {
+  if (hours === 0) {
+    return `12:${minutes} AM`
+  } else if (hours < 12) {
+    return `${hours}:${minutes} AM`
+  } else if (hours === 12) {
+    return `${hours}:${minutes} PM`
+  } else {
+    return `${hours - 12}:${minutes} PM`
+  }
 }

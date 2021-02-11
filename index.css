@@ -131,8 +131,13 @@ header {
 
 #user {
   font-weight: 900;
-  padding-right: 5rem;
-  color: rgb(73 171 255);
+  padding-right: 1rem;
+  color: rgb(73, 171, 255);
+}
+
+#user-video {
+  width: 80px;
+  padding-right: 2rem;
 }
 
 main {
@@ -193,14 +198,15 @@ aside {
 
 .username {
   font-weight: 900;
-  font-size: 0.5rem;
   padding-bottom: 0.2rem;
 }
 .sender .username {
   color: rgb(249, 194, 95);
+  font-size: 0.5rem;
 }
 .receiver .username {
   color: rgb(23, 179, 12);;
+  font-size: 0.7rem;
 }
 
 .chat-message {

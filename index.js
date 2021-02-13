@@ -206,6 +206,7 @@ function handleUserMedia(stream) {
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 
+  console.log('ask for users');
   socket.emit('ask for users');
 }
 

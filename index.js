@@ -1,10 +1,10 @@
 const backendURL = 'https://livestchat.herokuapp.com/';
-// const backendURL = 'http://localhost:9000';
 
+let localStream;
 let socket;
 let socketId;
-const peerConnections = {};
-let peerConnection;
+const localPeerConnections = {};
+const remotePeerConnections = {};
 const peerConnectionConfig = {
   iceServers: [
     {
@@ -37,128 +37,20 @@ function handleEnteringChat(event) {
   setupSocket(username);
 }
 
-function setupSocket(username) {
-  socket = io(backendURL, { query: { username } });
-  socket.on('connect', () => socketId = socket.id);
-  socket.on('room message', (message, name) => displayMessage(message, name, false));
-  socket.on('someone left', removePerson);
-  socket.on('someone joined', displayPerson);
-
-  socket.on('answer', description => {
-    console.log('answer', description);
-    peerConnection.setRemoteDescription(description);
-    // peerConnections[id].setRemoteDescription(description);
-  });
-  
-  socket.on('candidate', (candidate, anotherSocketId) => {
-    console.log('candidate', candidate);
-    peerConnections[anotherSocketId]
-      .addIceCandidate(new RTCIceCandidate(candidate))
-      .catch(error => console.error(`error: ${error}`));
-    // peerConnections[id].addIceCandidate(new RTCIceCandidate(candidate));
-  });
-  
-  socket.on('disconnect video', anotherSocketId => {
-    peerConnections[anotherSocketId].close();
-    delete peerConnections[anotherSocketId];
-    const videoToDisconnect = document.querySelector(
-      `.peer-video[data-socket-id="${anotherSocketId}"]`
-    );
-    videoToDisconnect.remove();
-  });
-  
-  window.onunload = window.onbeforeunload = () => {
-    console.log('window unload, socket and peer connection close');
-    socket.close();
-    peerConnection.close();
-  };
-
-  socket.on('offer', (offer, anotherSocketId) => {
-    console.log('offer', offer);
-    const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-    peerConnections[anotherSocketId] = peerConnection;
-    peerConnection
-      .setRemoteDescription(offer)
-      .then(() => peerConnection.createAnswer())
-      .then(sdp => peerConnection.setLocalDescription(sdp))
-      .then(() => socket.emit('answer', peerConnection.localDescription));
-
-    peerConnection.ontrack = event => {
-      const newVideo = document.createElement('video');
-      newVideo.classList.add('peer-video');
-      newVideo.dataset.socketId = anotherSocketId;
-      newVideo.srcObject = event.streams[0];
-      newVideo.play();
-      document.body.append(newVideo);
-    };
-  });
-}
-
-function removePerson(username) {
-  const leavingChatter = findChatter(username);
-  leavingChatter.remove();
-}
-
 function handleEnteringRoom(event) {
   const { classList, textContent, id } = event.target;
 
   if (classList.contains('room-selector')) {
     enterRoom(textContent);
   } else if (id === 'video-chat') {
-    socket.emit('video chat');
-    const userMediaParams = { video: { facingMode: 'user' } };
-    navigator.mediaDevices
-      .getUserMedia(userMediaParams) 
+    const userMediaParams = { 
+      audio: { echoCancellation: true },
+      video: { facingMode: 'user' }
+    };
+    navigator.mediaDevices.getUserMedia(userMediaParams)
       .then(handleUserMedia)
       .catch(handleUserMediaError);
   }
-}
-
-function handleUserMedia(stream) {
-  const userVideo = document.querySelector('#user-video');
-  userVideo.srcObject = stream;
-  userVideo.onloadedmetadata = _ => userVideo.play();
-
-  peerConnection = new RTCPeerConnection(peerConnectionConfig);
-  stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-    
-  peerConnection.onicecandidate = event => {
-    if (event.candidate) {
-      socket.emit('candidate', event.candidate);
-    }
-  };
-
-  peerConnection
-    .createOffer()
-    .then(sdp => peerConnection.setLocalDescription(sdp))
-    .then(() => socket.emit('offer', peerConnection.localDescription));
-}
-
-function handleUserMediaError(error) {
-  console.error(`error: ${error}`);
-}
-
-function enterRoom(textContent) {
-  socket.emit('join room', textContent, displayPeople);
-  chatForm.dataset.room = textContent;
-  title.textContent = textContent;
-  hide(rooms);
-  unhide(exitRoom, messages);
-  enable(chatSubmit);
-}
-
-function displayPeople(people) {
-  unhide(chatters);
-  people.forEach(displayPerson);
-}
-
-function displayPerson(username) {
-  const personDisplay = document.createElement('li');
-  const personButton = document.createElement('button');
-  personButton.classList.add('chatter');
-  personButton.textContent = username;
-  personDisplay.append(personButton);
-  chatters.append(personDisplay);
 }
 
 function leaveRoom(_) {
@@ -184,6 +76,164 @@ function handleChatMessage(event) {
     displayMessage(message, username, true);
     event.target.reset();
   }
+}
+
+function setupSocket(username) {
+  socket = io(backendURL, { query: { username } });
+  socket.on('connect', () => socketId = socket.id);
+
+  socket.on('room message', (message, name) => displayMessage(message, name, false));
+  socket.on('someone left', removePerson);
+  socket.on('someone joined', displayPerson);
+
+  socket.on('get users', connectToOtherUsers);
+  socket.on('offer', handleOffer);
+  socket.on('offer candidate', handleOfferCandidate);
+  socket.on('answer', handleAnswer);
+  socket.on('answer candidate', handleAnswerCandidate);
+  socket.on('disconnect video', handleDisconnectVideo);
+
+  window.onunload = window.onbeforeunload = handleWindowUnload;
+}
+
+function connectToOtherUsers(otherUsers) {
+  otherUsers.forEach(handlePeerConnection);
+}
+
+function handlePeerConnection(userSocketId) {
+  const localPeerConnection = new RTCPeerConnection(peerConnectionConfig);
+  localPeerConnections[userSocketId] = localPeerConnection;
+
+  localStream.getTracks().forEach(track => localPeerConnection.addTrack(track, localStream));
+
+  localPeerConnection.onicecandidate = emitOfferCandidate;
+
+  localPeerConnection.createOffer()
+    .then(sdp => localPeerConnection.setLocalDescription(sdp))
+    .then(() => socket.emit('offer', localPeerConnection.localDescription, userSocketId))
+    .catch(error => console.log(`create offer error: ${error}`));
+}
+
+function emitOfferCandidate({ candidate }) {
+  if (candidate) {
+    socket.emit('offer candidate', candidate, socketId);
+  }
+};
+
+function handleOffer(offer, senderSocketId, senderUsername) {
+  const remotePeerConnection = new RTCPeerConnection(peerConnectionConfig);
+  remotePeerConnections[senderSocketId] = remotePeerConnection;
+  remotePeerConnection.onicecandidate = (event) => {
+    emitAnswerCandidate(event, senderSocketId)
+  };
+
+  remotePeerConnection
+    .setRemoteDescription(offer)
+    .then(() => remotePeerConnection.createAnswer())
+    .then(sdp => remotePeerConnection.setLocalDescription(sdp))
+    .then(() => socket.emit('answer', remotePeerConnection.localDescription, senderSocketId))
+    .catch(error => console.error(`set remote description error: ${error}`))
+
+  remotePeerConnection.ontrack = (event) => {
+    displayRemoteVideo(event, senderSocketId, senderUsername);
+  }
+}
+
+function emitAnswerCandidate({ candidate }, senderSocketId) {
+  if (candidate) {
+    socket.emit('answer candidate', candidate, senderSocketId);
+  }
+};
+
+function handleAnswer(answer, receiverSocketId) {
+  localPeerConnections[receiverSocketId]
+    .setRemoteDescription(answer);
+}
+
+function handleOfferCandidate(candidate, senderSocketId) {
+  remotePeerConnections[senderSocketId]
+    .addIceCandidate(new RTCIceCandidate(candidate))
+    .catch(error => console.error(`add ice candidate error: ${error}`));
+}
+
+function handleAnswerCandidate(candidate, receiverSocketId) {
+  localPeerConnections[receiverSocketId]
+    .addIceCandidate(new RTCIceCandidate(candidate))
+    .catch(error => console.error(`add ice candidate error: ${error}`));
+}
+
+function handleDisconnectVideo(anotherSocketId) {
+  if (remotePeerConnections[anotherSocketId]) {
+    remotePeerConnections[anotherSocketId].close();
+    delete remotePeerConnections[anotherSocketId];
+    const videoToDisconnect = document.querySelector(
+      `.video-container[data-socket-id="${anotherSocketId}"]`
+    );
+    videoToDisconnect.remove();
+  }
+}
+
+function handleWindowUnload() {
+  socket.close();
+  Object.values(localPeerConnections)
+    .forEach(localPeerConnection => localPeerConnection.close());
+};
+
+function displayRemoteVideo(event, senderSocketId, senderUsername) {
+  const videoContainer = document.createElement('div');
+  videoContainer.classList.add('video-container');
+  videoContainer.dataset.socketId = senderSocketId;
+
+  const newVideo = document.createElement('video');
+  newVideo.classList.add('peer-video');
+  newVideo.srcObject = event.streams[0];
+  newVideo.play();
+
+  const videoUsername = document.createElement('h6');
+  videoUsername.textContent = senderUsername;
+
+  videoContainer.append(newVideo, videoUsername);
+  document.body.append(videoContainer);
+};
+
+function handleUserMedia(stream) {
+  const userVideo = document.querySelector('#user-video');
+  userVideo.srcObject = localStream = stream;
+  userVideo.onloadedmetadata = _ => userVideo.play();
+
+  socket.emit('ask for users');
+}
+
+function handleUserMediaError(error) {
+  console.error(`get user media error: ${error}`);
+}
+
+function enterRoom(textContent) {
+  socket.emit('join room', textContent, displayPeople);
+  chatForm.dataset.room = textContent;
+  title.textContent = textContent;
+  hide(rooms);
+  unhide(exitRoom, messages);
+  enable(chatSubmit);
+}
+
+function displayPeople(people) {
+  unhide(chatters);
+  people.forEach(displayPerson);
+}
+
+function displayPerson(username) {
+  const personDisplay = document.createElement('li');
+  const personButton = document.createElement('button');
+  personButton.classList.add('chatter');
+  personButton.textContent = username;
+  personDisplay.append(personButton);
+  chatters.append(personDisplay);
+}
+
+function removePerson(username) {
+  const leavingChatter = findChatter(username);
+  leavingChatter.remove();
 }
 
 function displayMessage(message, username, isSender) {
@@ -264,7 +314,7 @@ function formatTwelveHourTime(hours, minutes) {
   } else if (hours < 12) {
     return `${hours}:${minutes} AM`
   } else if (hours === 12) {
-    return `${hours}:${minutes} PM`
+    return `12:${minutes} PM`
   } else {
     return `${hours - 12}:${minutes} PM`
   }

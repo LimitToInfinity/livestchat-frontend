@@ -279,3 +279,21 @@ input:disabled {
 .hidden {
   display: none !important;
 }
+
+.video-container {
+  height: 150px;
+  position: relative;
+}
+
+.peer-video {
+  height: 150px;
+}
+
+.video-container > h6 {
+  font-weight: 900;
+  background-color: rgba(255, 255, 255, 0.6);
+  padding: 0.1rem 1.5rem 0.3rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}

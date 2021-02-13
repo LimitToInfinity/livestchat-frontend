@@ -44,7 +44,7 @@ function handleEnteringRoom(event) {
     enterRoom(textContent);
   } else if (id === 'video-chat') {
     const userMediaParams = { 
-      audio: { echoCancellation: true },
+      // audio: { echoCancellation: true },
       video: { facingMode: 'user' }
     };
     navigator.mediaDevices.getUserMedia(userMediaParams)
@@ -97,6 +97,7 @@ function setupSocket(username) {
 }
 
 function connectToOtherUsers(otherUsers) {
+  console.log('other users', otherUsers);
   otherUsers.forEach(handlePeerConnection);
 }
 
@@ -121,6 +122,7 @@ function emitOfferCandidate({ candidate }) {
 };
 
 function handleOffer(offer, senderSocketId, senderUsername) {
+  console.log('offer', offer);
   const remotePeerConnection = new RTCPeerConnection(peerConnectionConfig);
   remotePeerConnections[senderSocketId] = remotePeerConnection;
   remotePeerConnection.onicecandidate = (event) => {
@@ -146,17 +148,20 @@ function emitAnswerCandidate({ candidate }, senderSocketId) {
 };
 
 function handleAnswer(answer, receiverSocketId) {
+  console.log('answer', answer);
   localPeerConnections[receiverSocketId]
     .setRemoteDescription(answer);
 }
 
 function handleOfferCandidate(candidate, senderSocketId) {
+  console.log('offer candidate', candidate);
   remotePeerConnections[senderSocketId]
     .addIceCandidate(new RTCIceCandidate(candidate))
     .catch(error => console.error(`add ice candidate error: ${error}`));
 }
 
 function handleAnswerCandidate(candidate, receiverSocketId) {
+  console.log('answer candidate', candidate);
   localPeerConnections[receiverSocketId]
     .addIceCandidate(new RTCIceCandidate(candidate))
     .catch(error => console.error(`add ice candidate error: ${error}`));

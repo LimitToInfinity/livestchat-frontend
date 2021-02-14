@@ -166,11 +166,14 @@ function handleDisconnectVideo(anotherSocketId) {
   if (remotePeerConnections[anotherSocketId]) {
     remotePeerConnections[anotherSocketId].close();
     delete remotePeerConnections[anotherSocketId];
-    const videoToDisconnect = document.querySelector(
-      `.video-container[data-socket-id="${anotherSocketId}"]`
-    );
-    videoToDisconnect.remove();
+    findVideoContainer(anotherSocketId).remove();
   }
+}
+
+function findVideoContainer(socketId) {
+  return document.querySelector(
+    `.video-container[data-socket-id="${socketId}"]`
+  );
 }
 
 function handleWindowUnload() {
@@ -180,20 +183,24 @@ function handleWindowUnload() {
 };
 
 function displayRemoteVideo(event, senderSocketId, senderUsername) {
-  const videoContainer = document.createElement('div');
-  videoContainer.classList.add('video-container');
-  videoContainer.dataset.socketId = senderSocketId;
-
-  const newVideo = document.createElement('video');
-  newVideo.classList.add('peer-video');
-  newVideo.srcObject = event.streams[0];
-  newVideo.play();
-
-  const videoUsername = document.createElement('h6');
-  videoUsername.textContent = senderUsername;
-
-  videoContainer.append(newVideo, videoUsername);
-  document.body.append(videoContainer);
+  const sameRemoteVideo = findVideoContainer(senderSocketId);
+  
+  if (!sameRemoteVideo) {
+    const videoContainer = document.createElement('div');
+    videoContainer.classList.add('video-container');
+    videoContainer.dataset.socketId = senderSocketId;
+  
+    const newVideo = document.createElement('video');
+    newVideo.classList.add('peer-video');
+    newVideo.srcObject = event.streams[0];
+    newVideo.play();
+  
+    const videoUsername = document.createElement('h6');
+    videoUsername.textContent = senderUsername;
+  
+    videoContainer.append(newVideo, videoUsername);
+    document.body.append(videoContainer);
+  }
 };
 
 function handleUserMedia(stream) {

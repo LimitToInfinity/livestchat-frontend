@@ -175,10 +175,13 @@ aside {
   background-color: rgba(152, 239, 197, 0.95);
 }
 
+#videos {
+  width: 60%;
+  overflow: scroll;
+}
+
 #messages {
-  margin: 0;
-  padding: 0;
-  width: 85%;
+  width: 25%;
   overflow: scroll;
 }
 

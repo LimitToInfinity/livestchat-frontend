@@ -1,4 +1,5 @@
-const backendURL = 'https://livestchat.herokuapp.com/';
+// const backendURL = 'https://livestchat.herokuapp.com/';
+const backendURL = 'http://localhost:9000';
 
 let localStream;
 let socket;
@@ -23,6 +24,7 @@ const chatSubmit = document.querySelector('#chat-submit');
 const rooms = document.querySelector('#rooms');
 const chatters = document.querySelector('#chatters');
 const messages = document.querySelector('#messages');
+const videos = document.querySelector('#videos');
 
 enterChat.addEventListener('submit', handleEnteringChat);
 rooms.addEventListener('click', handleEnteringRoom);
@@ -40,9 +42,16 @@ function handleEnteringChat(event) {
 function handleEnteringRoom(event) {
   const { classList, textContent, id } = event.target;
 
-  if (classList.contains('room-selector')) {
+  if (id === 'video-chat') {
+    startStream();
     enterRoom(textContent);
-  } else if (id === 'video-chat') {
+  } else if (classList.contains('room-selector')) {
+    enterRoom(textContent);
+  } 
+}
+
+function startStream() {
+  if (navigator.mediaDevices) {
     const userMediaParams = { 
       // audio: { echoCancellation: true },
       video: { facingMode: 'user' }
@@ -50,6 +59,8 @@ function handleEnteringRoom(event) {
     navigator.mediaDevices.getUserMedia(userMediaParams)
       .then(handleUserMedia)
       .catch(handleUserMediaError);
+  } else {
+    alert('User media is not supported in this browser.');
   }
 }
 
@@ -57,12 +68,27 @@ function leaveRoom(_) {
   socket.emit('leave room', chatForm.dataset.room);
   chatForm.dataset.room = '';
 
+  if (title.textContent.trim() === 'Video Chat') {
+    stopVideo();
+    closeLocalPeerConnections();
+  }
+
   title.textContent = 'Choose room';
 
   disable(chatSubmit);
   unhide(rooms);
-  hide(exitRoom, messages, chatters);
+  hide(exitRoom, messages, chatters, videos);
   clearHTML(messages, chatters);
+}
+
+function stopVideo() {
+  document.querySelector('#user-video').srcObject = null;
+  localStream.getVideoTracks().forEach(stopTrack);
+}
+
+function stopTrack(track) {
+  track.stop();
+  track.enabled = false;
 }
 
 function handleChatMessage(event) {
@@ -178,14 +204,18 @@ function findVideoContainer(socketId) {
 
 function handleWindowUnload() {
   socket.close();
+  closeLocalPeerConnections();
+};
+
+function closeLocalPeerConnections() {
   Object.values(localPeerConnections)
     .forEach(localPeerConnection => localPeerConnection.close());
-};
+}
 
 function displayRemoteVideo(event, senderSocketId, senderUsername) {
   const sameRemoteVideo = findVideoContainer(senderSocketId);
-  
-  if (sameRemoteVideo) {
+
+  if (!sameRemoteVideo) {
     const videoContainer = document.createElement('div');
     videoContainer.classList.add('video-container');
     videoContainer.dataset.socketId = senderSocketId;
@@ -199,7 +229,7 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
     videoUsername.textContent = senderUsername;
   
     videoContainer.append(newVideo, videoUsername);
-    document.body.append(videoContainer);
+    videos.append(videoContainer);
   }
 };
 
@@ -213,6 +243,7 @@ function handleUserMedia(stream) {
 
 function handleUserMediaError(error) {
   console.error(`get user media error: ${error}`);
+  alert('Problem retrieving media streams, or did you disallow access?');
 }
 
 function enterRoom(textContent) {
@@ -222,6 +253,10 @@ function enterRoom(textContent) {
   hide(rooms);
   unhide(exitRoom, messages);
   enable(chatSubmit);
+
+  if (textContent.trim() === 'Video Chat') {
+    unhide(videos);
+  }
 }
 
 function displayPeople(people) {

@@ -185,7 +185,7 @@ function handleWindowUnload() {
 function displayRemoteVideo(event, senderSocketId, senderUsername) {
   const sameRemoteVideo = findVideoContainer(senderSocketId);
   
-  if (!sameRemoteVideo) {
+  if (sameRemoteVideo) {
     const videoContainer = document.createElement('div');
     videoContainer.classList.add('video-container');
     videoContainer.dataset.socketId = senderSocketId;

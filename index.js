@@ -190,6 +190,8 @@ function handleAnswerCandidate(candidate, receiverSocketId) {
 
 function handleDisconnectVideo(anotherSocketId) {
   if (remotePeerConnections[anotherSocketId]) {
+    localPeerConnections[anotherSocketId].close();
+    delete localPeerConnections[anotherSocketId];
     remotePeerConnections[anotherSocketId].close();
     delete remotePeerConnections[anotherSocketId];
     findVideoContainer(anotherSocketId).remove();
@@ -215,6 +217,8 @@ function closePeerConnections() {
 function closeAndDeleteAll(connections) {
   Object.values(connections).forEach(connection => connection.close());
   Object.keys(connections).forEach(socketId => delete connections[socketId]);
+
+  clearHTML(videos);
 }
 
 function displayRemoteVideo(event, senderSocketId, senderUsername) {

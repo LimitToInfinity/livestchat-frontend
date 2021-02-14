@@ -19,6 +19,7 @@ const title = document.querySelector('#title');
 const exitRoom = document.querySelector('#exit-room');
 const user = document.querySelector('#user');
 const chatForm = document.querySelector('#chat-form');
+const chatInput = document.querySelector('input[name="message"]');
 const chatSubmit = document.querySelector('#chat-submit');
 const rooms = document.querySelector('#rooms');
 const chatters = document.querySelector('#chatters');
@@ -69,12 +70,12 @@ function leaveRoom(_) {
 
   if (title.textContent.trim() === 'Video Chat') {
     stopVideo();
-    closeLocalPeerConnections();
+    closePeerConnections();
   }
 
   title.textContent = 'Choose room';
 
-  disable(chatSubmit);
+  disable(chatInput, chatSubmit);
   unhide(rooms);
   hide(exitRoom, messages, chatters, videos);
   clearHTML(messages, chatters);
@@ -203,12 +204,17 @@ function findVideoContainer(socketId) {
 
 function handleWindowUnload() {
   socket.close();
-  closeLocalPeerConnections();
+  closePeerConnections();
 };
 
-function closeLocalPeerConnections() {
-  Object.values(localPeerConnections)
-    .forEach(localPeerConnection => localPeerConnection.close());
+function closePeerConnections() {
+  closeAndDeleteAll(localPeerConnections);
+  closeAndDeleteAll(remotePeerConnections);
+}
+
+function closeAndDeleteAll(connections) {
+  Object.values(connections).forEach(connection => connection.close());
+  Object.keys(connections).forEach(socketId => delete connections[socketId]);
 }
 
 function displayRemoteVideo(event, senderSocketId, senderUsername) {
@@ -251,7 +257,7 @@ function enterRoom(textContent) {
   title.textContent = textContent;
   hide(rooms);
   unhide(exitRoom, messages);
-  enable(chatSubmit);
+  enable(chatInput, chatSubmit);
 
   if (textContent.trim() === 'Video Chat') {
     unhide(videos);

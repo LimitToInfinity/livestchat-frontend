@@ -1,4 +1,5 @@
-const backendURL = 'https://livestchat.herokuapp.com/';
+// const backendURL = 'https://livestchat.herokuapp.com/';
+const backendURL = 'http://localhost:9000';
 
 let localStream;
 let socket;
@@ -31,7 +32,7 @@ chatForm.addEventListener('submit', handleChatMessage);
 
 function handleEnteringChat(event) {
   event.preventDefault();
-  document.querySelector('#modal').classList.add('hidden');
+  hide(document.querySelector('#modal'));
   const { username } = getFormData(event.target, 'username');
   document.querySelector('#user').textContent = username;
   setupSocket(username);
@@ -70,7 +71,8 @@ function leaveRoom(_) {
   if (title.textContent.trim() === 'Video Chat') {
     stopVideo();
     closePeerConnections();
-  }
+    clearHTML(videos);
+}
 
   title.textContent = 'Choose room';
 
@@ -107,20 +109,16 @@ function setupSocket(username) {
   socket = io(backendURL, { query: { username } });
   socket.on('connect', () => mySocketId = socket.id);
 
-  socket.on('room message', (message, name) => displayMessage(message, name, false));
+  socket.on('room message', (message, name) => {
+    displayMessage(message, name, false);
+  });
   socket.on('someone left', removePerson);
   socket.on('someone joined', displayPerson);
 
   socket.on('get users', connectToOtherUsers);
-  socket.on('enter offer', handleOffer);
-  socket.on('return offer', handleOffer);
-  socket.on('offer candidate', (candidate, socketId) => {
-    handleCandidate(candidate, socketId, remotePeerConnections, 'offer');
-  });
+  socket.on('offer', handleOffer);
   socket.on('answer', handleAnswer);
-  socket.on('answer candidate', (candidate, socketId) => {
-    handleCandidate(candidate, socketId, localPeerConnections, 'answer');
-  });
+  socket.on('candidate', handleCandidate);
   socket.on('disconnect video', handleDisconnectVideo);
 
   window.onunload = window.onbeforeunload = handleWindowUnload;
@@ -128,7 +126,7 @@ function setupSocket(username) {
 
 function connectToOtherUsers(otherUsers) {
   otherUsers.forEach(socketId => {
-    handleLocalPeerConnection(socketId, 'enter offer')
+    handleLocalPeerConnection(socketId, 'initiation');
   });
 }
 
@@ -142,7 +140,7 @@ function handleLocalPeerConnection(socketId, offerType) {
     emitCandidate(event, socketId, 'offer');
   };
 
-  setupConnection(localPeerConnection, socketId, offerType);
+  setupLocalConnection(localPeerConnection, socketId, offerType);
 }
 
 function addStreamTracks(localPeerConnection) {
@@ -150,18 +148,21 @@ function addStreamTracks(localPeerConnection) {
     .forEach(track => localPeerConnection.addTrack(track, localStream));
 }
 
-function setupConnection(localPeerConnection, socketId, offerType) {
+function setupLocalConnection(localPeerConnection, socketId, offerType) {
   localPeerConnection.createOffer()
     .then(sdp => localPeerConnection.setLocalDescription(sdp))
-    .then(() => socket.emit(offerType, localPeerConnection.localDescription, socketId))
-    .catch(error => console.error(`${offerType} error: ${error}`));
+    .then(() => {
+      const sdp = localPeerConnection.localDescription;
+      socket.emit('offer', sdp, socketId, offerType);
+    })
+    .catch(error => console.error(`${offerType} offer error: ${error}`));
 }
 
-function handleOffer(offer, socketId, username, isInitiationOffer) {
-  if (isInitiationOffer) {
-    handleLocalPeerConnection(socketId, 'return offer');
+function handleOffer(offer, socketId, username, offerType) {
+  if (offerType === 'initiation') {
+    handleLocalPeerConnection(socketId, 'return');
   }
-
+  
   handleRemotePeerConnection(offer, socketId, username);
 }
 
@@ -169,12 +170,7 @@ function handleRemotePeerConnection(offer, socketId, username) {
   const remotePeerConnection = 
     createPeerConnection(socketId, remotePeerConnections);
 
-  remotePeerConnection
-    .setRemoteDescription(offer)
-    .then(() => remotePeerConnection.createAnswer())
-    .then(sdp => remotePeerConnection.setLocalDescription(sdp))
-    .then(() => socket.emit('answer', remotePeerConnection.localDescription, socketId))
-    .catch(error => console.error(`set remote peer connection error: ${error}`));
+  setupRemoteConnection(remotePeerConnection, offer, socketId);
 
   remotePeerConnection.onicecandidate = (event) => {
     emitCandidate(event, socketId, 'answer')
@@ -190,9 +186,21 @@ function createPeerConnection(socketId, peerConnections) {
   return peerConnections[socketId] = peerConnection;
 }
 
-function emitCandidate({ candidate }, socketId, offerOrReturn) {
+function setupRemoteConnection(remotePeerConnection, offer, socketId) {
+  remotePeerConnection
+    .setRemoteDescription(offer)
+    .then(() => remotePeerConnection.createAnswer())
+    .then(sdp => remotePeerConnection.setLocalDescription(sdp))
+    .then(() => {
+      const sdp = remotePeerConnection.localDescription;
+      socket.emit('answer', sdp, socketId);
+    })
+    .catch(error => console.error(`answer error: ${error}`));
+}
+
+function emitCandidate({ candidate }, socketId, offerOrAnswer) {
   if (candidate) {
-    socket.emit(`${offerOrReturn} candidate`, candidate, socketId);
+    socket.emit('candidate', candidate, socketId, offerOrAnswer);
   }
 };
 
@@ -201,7 +209,10 @@ function handleAnswer(answer, receiverSocketId) {
     .setRemoteDescription(answer);
 }
 
-function handleCandidate(candidate, socketId, peerConnections, offerOrAnswer) {
+function handleCandidate(candidate, socketId, offerOrAnswer) {
+  const peerConnections = offerOrAnswer === 'offer'
+    ? remotePeerConnections : localPeerConnections;
+
   peerConnections[socketId]
     .addIceCandidate(new RTCIceCandidate(candidate))
     .catch(error => {
@@ -238,8 +249,6 @@ function closePeerConnections() {
 function closeAndDeleteAll(connections) {
   Object.values(connections).forEach(connection => connection.close());
   Object.keys(connections).forEach(socketId => delete connections[socketId]);
-
-  clearHTML(videos);
 }
 
 function displayRemoteVideo(event, senderSocketId, senderUsername) {
@@ -374,10 +383,7 @@ function getCurrentTime() {
 }
 
 function formatMinutes(minutes) {
-  if (minutes > 9) {
-    return minutes;
-  }
-  return `0${minutes}`
+  return minutes > 9 ? minutes : `0${minutes}`;
 }
 
 function formatTwelveHourTime(hours, minutes) {

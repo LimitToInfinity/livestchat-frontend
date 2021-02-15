@@ -178,6 +178,8 @@ aside {
 #videos {
   width: 60%;
   overflow: scroll;
+  display: flex;
+  flex-wrap: wrap;
 }
 
 #messages {

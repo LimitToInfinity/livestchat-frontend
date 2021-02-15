@@ -65,13 +65,13 @@ function startStream(room) {
 
 function leaveRoom(_) {
   socket.emit('leave room', chatForm.dataset.room);
-  chatForm.dataset.room = '';
+  delete chatForm.dataset.room;
 
   if (title.textContent.trim() === 'Video Chat') {
     stopVideo();
     closePeerConnections();
     clearHTML(videos);
-}
+  }
 
   title.textContent = 'Choose room';
 

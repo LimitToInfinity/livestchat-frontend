@@ -1,5 +1,4 @@
-// const backendURL = 'https://livestchat.herokuapp.com/';
-const backendURL = 'http://localhost:9000';
+const backendURL = 'https://livestchat.herokuapp.com/';
 
 let localStream;
 let socket;
@@ -128,7 +127,6 @@ function setupSocket(username) {
 }
 
 function connectToOtherUsers(otherUsers) {
-  console.log('connect to others', otherUsers);
   otherUsers.forEach(socketId => {
     handleLocalPeerConnection(socketId, 'enter offer')
   });

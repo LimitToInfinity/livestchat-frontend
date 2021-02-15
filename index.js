@@ -1,8 +1,9 @@
-const backendURL = 'https://livestchat.herokuapp.com/';
+// const backendURL = 'https://livestchat.herokuapp.com/';
+const backendURL = 'http://localhost:9000';
 
 let localStream;
 let socket;
-let socketId;
+let mySocketId;
 const localPeerConnections = {};
 const remotePeerConnections = {};
 const peerConnectionConfig = {
@@ -13,11 +14,8 @@ const peerConnectionConfig = {
   ]
 };
 
-const modal = document.querySelector('#modal');
-const enterChat = document.querySelector('#enter-chat');
 const title = document.querySelector('#title');
 const exitRoom = document.querySelector('#exit-room');
-const user = document.querySelector('#user');
 const chatForm = document.querySelector('#chat-form');
 const chatInput = document.querySelector('input[name="message"]');
 const chatSubmit = document.querySelector('#chat-submit');
@@ -26,38 +24,40 @@ const chatters = document.querySelector('#chatters');
 const messages = document.querySelector('#messages');
 const videos = document.querySelector('#videos');
 
-enterChat.addEventListener('submit', handleEnteringChat);
+document.querySelector('#enter-chat')
+  .addEventListener('submit', handleEnteringChat);
 rooms.addEventListener('click', handleEnteringRoom);
 exitRoom.addEventListener('click', leaveRoom);
 chatForm.addEventListener('submit', handleChatMessage);
 
 function handleEnteringChat(event) {
   event.preventDefault();
-  modal.classList.add('hidden');
+  document.querySelector('#modal').classList.add('hidden');
   const { username } = getFormData(event.target, 'username');
-  user.textContent = username;
+  document.querySelector('#user').textContent = username;
   setupSocket(username);
 }
 
 function handleEnteringRoom(event) {
   const { classList, textContent, id } = event.target;
+  const room = textContent.trim();
 
   if (id === 'video-chat') {
-    startStream();
-    enterRoom(textContent);
+    startStream(room);
+    enterRoom(room);
   } else if (classList.contains('room-selector')) {
-    enterRoom(textContent);
-  } 
+    enterRoom(room);
+  }
 }
 
-function startStream() {
+function startStream(room) {
   if (navigator.mediaDevices) {
     const userMediaParams = { 
       // audio: { echoCancellation: true },
       video: { facingMode: 'user' }
     };
     navigator.mediaDevices.getUserMedia(userMediaParams)
-      .then(handleUserMedia)
+      .then(stream => handleUserMedia(stream, room))
       .catch(handleUserMediaError);
   } else {
     alert('User media is not supported in this browser.');
@@ -106,68 +106,95 @@ function handleChatMessage(event) {
 
 function setupSocket(username) {
   socket = io(backendURL, { query: { username } });
-  socket.on('connect', () => socketId = socket.id);
+  socket.on('connect', () => mySocketId = socket.id);
 
   socket.on('room message', (message, name) => displayMessage(message, name, false));
   socket.on('someone left', removePerson);
   socket.on('someone joined', displayPerson);
 
   socket.on('get users', connectToOtherUsers);
-  socket.on('offer', handleOffer);
-  socket.on('offer candidate', handleOfferCandidate);
+  socket.on('enter offer', handleOffer);
+  socket.on('return offer', handleOffer);
+  socket.on('offer candidate', (candidate, socketId) => {
+    handleCandidate(candidate, socketId, remotePeerConnections, 'offer');
+  });
   socket.on('answer', handleAnswer);
-  socket.on('answer candidate', handleAnswerCandidate);
+  socket.on('answer candidate', (candidate, socketId) => {
+    handleCandidate(candidate, socketId, localPeerConnections, 'answer');
+  });
   socket.on('disconnect video', handleDisconnectVideo);
 
   window.onunload = window.onbeforeunload = handleWindowUnload;
 }
 
 function connectToOtherUsers(otherUsers) {
-  otherUsers.forEach(handlePeerConnection);
+  console.log('connect to others', otherUsers);
+  otherUsers.forEach(socketId => {
+    handleLocalPeerConnection(socketId, 'enter offer')
+  });
 }
 
-function handlePeerConnection(userSocketId) {
-  const localPeerConnection = new RTCPeerConnection(peerConnectionConfig);
-  localPeerConnections[userSocketId] = localPeerConnection;
+function handleLocalPeerConnection(socketId, offerType) {
+  const localPeerConnection =
+    createPeerConnection(socketId, localPeerConnections);
 
-  localStream.getTracks().forEach(track => localPeerConnection.addTrack(track, localStream));
+  addStreamTracks(localPeerConnection);
 
-  localPeerConnection.onicecandidate = emitOfferCandidate;
+  localPeerConnection.onicecandidate = event => {
+    emitCandidate(event, socketId, 'offer');
+  };
 
+  setupConnection(localPeerConnection, socketId, offerType);
+}
+
+function addStreamTracks(localPeerConnection) {
+  localStream.getTracks()
+    .forEach(track => localPeerConnection.addTrack(track, localStream));
+}
+
+function setupConnection(localPeerConnection, socketId, offerType) {
   localPeerConnection.createOffer()
     .then(sdp => localPeerConnection.setLocalDescription(sdp))
-    .then(() => socket.emit('offer', localPeerConnection.localDescription, userSocketId))
-    .catch(error => console.error(`create offer error: ${error}`));
+    .then(() => socket.emit(offerType, localPeerConnection.localDescription, socketId))
+    .catch(error => console.error(`${offerType} error: ${error}`));
 }
 
-function emitOfferCandidate({ candidate }) {
-  if (candidate) {
-    socket.emit('offer candidate', candidate, socketId);
+function handleOffer(offer, socketId, username, isInitiationOffer) {
+  if (isInitiationOffer) {
+    handleLocalPeerConnection(socketId, 'return offer');
   }
-};
 
-function handleOffer(offer, senderSocketId, senderUsername) {
-  const remotePeerConnection = new RTCPeerConnection(peerConnectionConfig);
-  remotePeerConnections[senderSocketId] = remotePeerConnection;
-  remotePeerConnection.onicecandidate = (event) => {
-    emitAnswerCandidate(event, senderSocketId)
-  };
+  handleRemotePeerConnection(offer, socketId, username);
+}
+
+function handleRemotePeerConnection(offer, socketId, username) {
+  const remotePeerConnection = 
+    createPeerConnection(socketId, remotePeerConnections);
 
   remotePeerConnection
     .setRemoteDescription(offer)
     .then(() => remotePeerConnection.createAnswer())
     .then(sdp => remotePeerConnection.setLocalDescription(sdp))
-    .then(() => socket.emit('answer', remotePeerConnection.localDescription, senderSocketId))
-    .catch(error => console.error(`set remote description error: ${error}`))
+    .then(() => socket.emit('answer', remotePeerConnection.localDescription, socketId))
+    .catch(error => console.error(`set remote peer connection error: ${error}`));
+
+  remotePeerConnection.onicecandidate = (event) => {
+    emitCandidate(event, socketId, 'answer')
+  };
 
   remotePeerConnection.ontrack = (event) => {
-    displayRemoteVideo(event, senderSocketId, senderUsername);
+    displayRemoteVideo(event, socketId, username);
   }
 }
 
-function emitAnswerCandidate({ candidate }, senderSocketId) {
+function createPeerConnection(socketId, peerConnections) {
+  const peerConnection = new RTCPeerConnection(peerConnectionConfig);
+  return peerConnections[socketId] = peerConnection;
+}
+
+function emitCandidate({ candidate }, socketId, offerOrReturn) {
   if (candidate) {
-    socket.emit('answer candidate', candidate, senderSocketId);
+    socket.emit(`${offerOrReturn} candidate`, candidate, socketId);
   }
 };
 
@@ -176,16 +203,12 @@ function handleAnswer(answer, receiverSocketId) {
     .setRemoteDescription(answer);
 }
 
-function handleOfferCandidate(candidate, senderSocketId) {
-  remotePeerConnections[senderSocketId]
+function handleCandidate(candidate, socketId, peerConnections, offerOrAnswer) {
+  peerConnections[socketId]
     .addIceCandidate(new RTCIceCandidate(candidate))
-    .catch(error => console.error(`add ice candidate error: ${error}`));
-}
-
-function handleAnswerCandidate(candidate, receiverSocketId) {
-  localPeerConnections[receiverSocketId]
-    .addIceCandidate(new RTCIceCandidate(candidate))
-    .catch(error => console.error(`add ice candidate error: ${error}`));
+    .catch(error => {
+      console.error(`add ice candidate ${offerOrAnswer} error: ${error}`);
+    });
 }
 
 function handleDisconnectVideo(anotherSocketId) {
@@ -242,12 +265,12 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
   }
 };
 
-function handleUserMedia(stream) {
+function handleUserMedia(stream, room) {
   const userVideo = document.querySelector('#user-video');
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 
-  socket.emit('ask for users');
+  socket.emit('ask for users', room);
 }
 
 function handleUserMediaError(error) {
@@ -255,15 +278,15 @@ function handleUserMediaError(error) {
   alert('Problem retrieving media streams, or did you disallow access?');
 }
 
-function enterRoom(textContent) {
-  socket.emit('join room', textContent, displayPeople);
-  chatForm.dataset.room = textContent;
-  title.textContent = textContent;
+function enterRoom(room) {
+  socket.emit('join room', room, displayPeople);
+  chatForm.dataset.room = room;
+  title.textContent = room;
   hide(rooms);
   unhide(exitRoom, messages);
   enable(chatInput, chatSubmit);
 
-  if (textContent.trim() === 'Video Chat') {
+  if (room === 'Video Chat') {
     unhide(videos);
   }
 }

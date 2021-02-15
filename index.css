@@ -61,20 +61,20 @@ table {
   text-align: center;
 }
 
-#enter-chat {
+#enter-app {
   display: flex;
   flex-direction: column;
 }
 
-#enter-chat label, #chat-username {
+#enter-app label, #chat-username {
   margin-bottom: 1rem;
 }
 
-#enter-chat input[type="submit"] {
+#enter-app input[type="submit"] {
   background-color: rgba(0, 0, 0, 0.589);
 }
 
-#enter-chat input[type="submit"]:hover {
+#enter-app input[type="submit"]:hover {
   background-color: rgba(27, 27, 27, 0.827)
 }
 

@@ -23,85 +23,18 @@ const chatters = document.querySelector('#chatters');
 const messages = document.querySelector('#messages');
 const videos = document.querySelector('#videos');
 
-document.querySelector('#enter-chat')
-  .addEventListener('submit', handleEnteringChat);
+document.querySelector('#enter-app')
+  .addEventListener('submit', enterApp);
 rooms.addEventListener('click', handleEnteringRoom);
 exitRoom.addEventListener('click', leaveRoom);
 chatForm.addEventListener('submit', handleChatMessage);
 
-function handleEnteringChat(event) {
+function enterApp(event) {
   event.preventDefault();
-  hide(document.querySelector('#modal'));
   const { username } = getFormData(event.target, 'username');
+  document.querySelector('#modal').remove();
   document.querySelector('#user').textContent = username;
   setupSocket(username);
-}
-
-function handleEnteringRoom(event) {
-  const { classList, textContent, id } = event.target;
-  const room = textContent.trim();
-
-  if (id === 'video-chat') {
-    startStream(room);
-    enterRoom(room);
-  } else if (classList.contains('room-selector')) {
-    enterRoom(room);
-  }
-}
-
-function startStream(room) {
-  if (navigator.mediaDevices) {
-    const userMediaParams = { 
-      // audio: { echoCancellation: true },
-      video: { facingMode: 'user' }
-    };
-    navigator.mediaDevices.getUserMedia(userMediaParams)
-      .then(stream => handleUserMedia(stream, room))
-      .catch(handleUserMediaError);
-  } else {
-    alert('User media is not supported in this browser.');
-  }
-}
-
-function leaveRoom(_) {
-  socket.emit('leave room', chatForm.dataset.room);
-  delete chatForm.dataset.room;
-
-  if (title.textContent.trim() === 'Video Chat') {
-    stopVideo();
-    closePeerConnections();
-    clearHTML(videos);
-  }
-
-  title.textContent = 'Choose room';
-
-  disable(chatInput, chatSubmit);
-  unhide(rooms);
-  hide(exitRoom, messages, chatters, videos);
-  clearHTML(messages, chatters);
-}
-
-function stopVideo() {
-  document.querySelector('#user-video').srcObject = null;
-  localStream.getVideoTracks().forEach(stopTrack);
-}
-
-function stopTrack(track) {
-  track.stop();
-  track.enabled = false;
-}
-
-function handleChatMessage(event) {
-  event.preventDefault();
-  const { dataset: { room } } = event.target;
-
-  const { message } = getFormData(event.target, 'message');
-  if (message) {
-    const { username } = socket.io.opts.query;
-    socket.emit('room message', room, message);
-    displayMessage(message, username, true);
-    event.target.reset();
-  }
 }
 
 function setupSocket(username) {
@@ -123,6 +56,161 @@ function setupSocket(username) {
   window.onunload = window.onbeforeunload = handleWindowUnload;
 }
 
+function displayMessage(message, username, isSender) {
+  const messageDisplay = document.createElement('li');
+  isSender
+    ? messageDisplay.classList.add('sender')
+    : messageDisplay.classList.add('receiver');
+
+  const usernameDisplay = document.createElement('h6');
+  usernameDisplay.textContent = username;
+  usernameDisplay.classList.add('username');
+
+  const messageText = document.createElement('p');
+  messageText.textContent = message;
+  messageText.classList.add('chat-message');
+
+  const timestamp = document.createElement('p');
+  timestamp.textContent = getCurrentTime();
+  timestamp.classList.add('timestamp');
+
+  messageDisplay.append(usernameDisplay, messageText, timestamp);
+  messages.append(messageDisplay);
+  messages.scrollTo(0, messages.scrollHeight);
+}
+
+function removePerson(username) {
+  const leavingChatter = findChatter(username);
+  leavingChatter.remove();
+}
+
+function findChatter(username) {
+  const allChatterButtons = Array.from(document.querySelectorAll('.chatter'));
+  return allChatterButtons
+    .find(chatter => chatter.textContent === username)
+    .parentNode;
+}
+
+function handleEnteringRoom(event) {
+  const { classList, textContent, id } = event.target;
+  const room = textContent.trim();
+
+  if (id === 'video-chat') {
+    handleStartStream(room);
+    enterRoom(room);
+  } else if (classList.contains('room-selector')) {
+    enterRoom(room);
+  }
+}
+
+function handleStartStream(room) {
+  if (navigator.mediaDevices) {
+    startStream(room);
+  } else {
+    alert('User media is not supported in this browser.');
+  }
+}
+
+function startStream(room) {
+  const userMediaParams = { 
+    // audio: { echoCancellation: true },
+    video: { facingMode: 'user' }
+  };
+  navigator.mediaDevices.getUserMedia(userMediaParams)
+    .then(stream => handleUserMedia(stream, room))
+    .catch(handleUserMediaError);
+}
+
+function handleUserMedia(stream, room) {
+  const userVideo = document.querySelector('#user-video');
+  userVideo.srcObject = localStream = stream;
+  userVideo.onloadedmetadata = _ => userVideo.play();
+
+  socket.emit('ask for users', room);
+}
+
+function handleUserMediaError(error) {
+  console.error(`get user media error: ${error}`);
+  alert('Problem retrieving media streams, or did you disallow access?');
+}
+
+function enterRoom(room) {
+  socket.emit('join room', room, displayPeople);
+  setupChatRoom(room);
+}
+
+function displayPeople(people) {
+  people.forEach(displayPerson);
+  unhide(chatters);
+}
+
+function displayPerson(username) {
+  const personDisplay = document.createElement('li');
+  const personButton = document.createElement('button');
+  personButton.classList.add('chatter');
+  personButton.textContent = username;
+  personDisplay.append(personButton);
+  chatters.append(personDisplay);
+}
+
+function setupChatRoom(room) {
+  chatForm.dataset.room = room;
+  title.textContent = room;
+
+  hide(rooms);
+  unhide(exitRoom, messages);
+  enable(chatInput, chatSubmit);
+
+  if (room === 'Video Chat') {
+    unhide(videos);
+  }
+}
+
+function leaveRoom(_) {
+  socket.emit('leave room', chatForm.dataset.room);
+
+  if (title.textContent.trim() === 'Video Chat') {
+    stopVideo();
+    closePeerConnections();
+    clearHTML(videos);
+  }
+
+  unsetupChatRoom();
+}
+
+function stopVideo() {
+  document.querySelector('#user-video').srcObject = null;
+  localStream.getVideoTracks().forEach(stopTrack);
+}
+
+function stopTrack(track) {
+  track.stop();
+  track.enabled = false;
+}
+
+function unsetupChatRoom() {
+  delete chatForm.dataset.room;
+  title.textContent = 'Choose room';
+
+  disable(chatInput, chatSubmit);
+  unhide(rooms);
+  hide(exitRoom, messages, chatters, videos);
+  clearHTML(messages, chatters);
+}
+
+function handleChatMessage(event) {
+  event.preventDefault();
+  const { dataset: { room } } = event.target;
+
+  const { message } = getFormData(event.target, 'message');
+  if (message) {
+    const { username } = socket.io.opts.query;
+    socket.emit('room message', room, message);
+    displayMessage(message, username, true);
+    event.target.reset();
+  }
+}
+
 function connectToOtherUsers(otherUsers) {
   otherUsers.forEach(socketId => {
     handleLocalPeerConnection(socketId, 'initiation');
@@ -142,9 +230,20 @@ function handleLocalPeerConnection(socketId, offerType) {
   setupLocalConnection(localPeerConnection, socketId, offerType);
 }
 
+function createPeerConnection(socketId, peerConnections) {
+  const peerConnection = new RTCPeerConnection(peerConnectionConfig);
+  return peerConnections[socketId] = peerConnection;
+}
+
 function addStreamTracks(localPeerConnection) {
   localStream.getTracks()
     .forEach(track => localPeerConnection.addTrack(track, localStream));
+}
+
+function emitCandidate({ candidate }, socketId, offerOrAnswer) {
+  if (candidate) {
+    socket.emit('candidate', candidate, socketId, offerOrAnswer);
+  }
 }
 
 function setupLocalConnection(localPeerConnection, socketId, offerType) {
@@ -180,11 +279,6 @@ function handleRemotePeerConnection(offer, socketId, username) {
   }
 }
 
-function createPeerConnection(socketId, peerConnections) {
-  const peerConnection = new RTCPeerConnection(peerConnectionConfig);
-  return peerConnections[socketId] = peerConnection;
-}
-
 function setupRemoteConnection(remotePeerConnection, offer, socketId) {
   remotePeerConnection
     .setRemoteDescription(offer)
@@ -197,11 +291,26 @@ function setupRemoteConnection(remotePeerConnection, offer, socketId) {
     .catch(error => console.error(`answer error: ${error}`));
 }
 
-function emitCandidate({ candidate }, socketId, offerOrAnswer) {
-  if (candidate) {
-    socket.emit('candidate', candidate, socketId, offerOrAnswer);
+function displayRemoteVideo(event, senderSocketId, senderUsername) {
+  const sameRemoteVideo = findVideoContainer(senderSocketId);
+
+  if (!sameRemoteVideo) {
+    const videoContainer = document.createElement('div');
+    videoContainer.classList.add('video-container');
+    videoContainer.dataset.socketId = senderSocketId;
+  
+    const newVideo = document.createElement('video');
+    newVideo.classList.add('peer-video');
+    newVideo.srcObject = event.streams[0];
+    newVideo.play();
+  
+    const videoUsername = document.createElement('h6');
+    videoUsername.textContent = senderUsername;
+  
+    videoContainer.append(newVideo, videoUsername);
+    videos.append(videoContainer);
   }
-};
+}
 
 function handleAnswer(answer, receiverSocketId) {
   localPeerConnections[receiverSocketId]
@@ -238,7 +347,7 @@ function findVideoContainer(socketId) {
 function handleWindowUnload() {
   socket.close();
   closePeerConnections();
-};
+}
 
 function closePeerConnections() {
   closeAndDeleteAll(localPeerConnections);
@@ -250,128 +359,12 @@ function closeAndDeleteAll(connections) {
   Object.keys(connections).forEach(socketId => delete connections[socketId]);
 }
 
-function displayRemoteVideo(event, senderSocketId, senderUsername) {
-  const sameRemoteVideo = findVideoContainer(senderSocketId);
-
-  if (!sameRemoteVideo) {
-    const videoContainer = document.createElement('div');
-    videoContainer.classList.add('video-container');
-    videoContainer.dataset.socketId = senderSocketId;
-  
-    const newVideo = document.createElement('video');
-    newVideo.classList.add('peer-video');
-    newVideo.srcObject = event.streams[0];
-    newVideo.play();
-  
-    const videoUsername = document.createElement('h6');
-    videoUsername.textContent = senderUsername;
-  
-    videoContainer.append(newVideo, videoUsername);
-    videos.append(videoContainer);
-  }
-};
-
-function handleUserMedia(stream, room) {
-  const userVideo = document.querySelector('#user-video');
-  userVideo.srcObject = localStream = stream;
-  userVideo.onloadedmetadata = _ => userVideo.play();
-
-  socket.emit('ask for users', room);
-}
-
-function handleUserMediaError(error) {
-  console.error(`get user media error: ${error}`);
-  alert('Problem retrieving media streams, or did you disallow access?');
-}
-
-function enterRoom(room) {
-  socket.emit('join room', room, displayPeople);
-  chatForm.dataset.room = room;
-  title.textContent = room;
-  hide(rooms);
-  unhide(exitRoom, messages);
-  enable(chatInput, chatSubmit);
-
-  if (room === 'Video Chat') {
-    unhide(videos);
-  }
-}
-
-function displayPeople(people) {
-  unhide(chatters);
-  people.forEach(displayPerson);
-}
-
-function displayPerson(username) {
-  const personDisplay = document.createElement('li');
-  const personButton = document.createElement('button');
-  personButton.classList.add('chatter');
-  personButton.textContent = username;
-  personDisplay.append(personButton);
-  chatters.append(personDisplay);
-}
-
-function removePerson(username) {
-  const leavingChatter = findChatter(username);
-  leavingChatter.remove();
-}
-
-function displayMessage(message, username, isSender) {
-  const messageDisplay = document.createElement('li');
-  isSender
-    ? messageDisplay.classList.add('sender')
-    : messageDisplay.classList.add('receiver');
-
-  const usernameDisplay = document.createElement('h6');
-  usernameDisplay.textContent = username;
-  usernameDisplay.classList.add('username');
-
-  const messageText = document.createElement('p');
-  messageText.textContent = message;
-  messageText.classList.add('chat-message');
-
-  const timestamp = document.createElement('p');
-  timestamp.textContent = getCurrentTime();
-  timestamp.classList.add('timestamp');
-
-  messageDisplay.append(usernameDisplay, messageText, timestamp);
-  messages.append(messageDisplay);
-  messages.scrollTo(0, messages.scrollHeight);
-}
-
-function findChatter(username) {
-  const allChatterButtons = Array.from(document.querySelectorAll('.chatter'));
-  return allChatterButtons
-    .find(chatter => chatter.textContent === username)
-    .parentNode;
-}
-
 function getFormData(form, ...inputs) {
   const formData = new FormData(form);
   return inputs.reduce((inputValues, input) => {
     inputValues[input] = formData.get(input);
     return inputValues;
   }, {});
-}
-
-function clearHTML(...elements) {
-  elements.forEach(element => element.innerHTML = '');
-}
-
-function hide(...elements) {
-  elements.forEach(element => element.classList.add('hidden'));
-}
-
-function unhide(...elements) {
-  elements.forEach(element => element.classList.remove('hidden'));
-}
-
-function disable(...elements) {
-  elements.forEach(element => element.disabled = true);
-}
-
-function enable(...elements) {
-  elements.forEach(element => element.disabled = false);
 }
 
 function getCurrentTime() {
@@ -395,4 +388,24 @@ function formatTwelveHourTime(hours, minutes) {
   } else {
     return `${hours - 12}:${minutes} PM`
   }
+}
+
+function clearHTML(...elements) {
+  elements.forEach(element => element.innerHTML = '');
+}
+
+function hide(...elements) {
+  elements.forEach(element => element.classList.add('hidden'));
+}
+
+function unhide(...elements) {
+  elements.forEach(element => element.classList.remove('hidden'));
+}
+
+function disable(...elements) {
+  elements.forEach(element => element.disabled = true);
+}
+
+function enable(...elements) {
+  elements.forEach(element => element.disabled = false);
 }

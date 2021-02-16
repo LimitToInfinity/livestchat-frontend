@@ -348,7 +348,7 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
     const videoUsername = document.createElement('h6');
     videoUsername.textContent = senderUsername;
 
-    videoContainer.append(newVideo, videoUsername, videoControls);
+    videoContainer.append(newVideo, videoUsername);
     videos.append(videoContainer);
   }
 }

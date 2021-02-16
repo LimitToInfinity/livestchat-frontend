@@ -38,12 +38,10 @@ function handleVideoToggle(event) {
   const videoSlashIcon = document.querySelector('.fa-video-slash');
 
   if (classList.contains('fa-video-slash')) {
-    console.log('if');
     pauseWebcam();
     hide(videoSlashIcon);
     unhide(videoIcon);
   } else if (classList.contains('fa-video')) {
-    console.log('else if');
     unpauseWebcam();
     hide(videoIcon);
     unhide(videoSlashIcon);

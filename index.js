@@ -166,7 +166,7 @@ function handleStartStream(room) {
 
 function startStream(room) {
   const userMediaParams = { 
-    audio: true,
+    // audio: true,
     video: { facingMode: 'user' }
   };
   navigator.mediaDevices.getUserMedia(userMediaParams)

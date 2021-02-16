@@ -36,16 +36,38 @@ function handleVideoToggle(event) {
   const { classList } = event.target;
   const videoIcon = document.querySelector('.fa-video');
   const videoSlashIcon = document.querySelector('.fa-video-slash');
+  const microphoneIcon = document.querySelector('.fa-microphone');
+  const microphoneSlashIcon = document.querySelector('.fa-microphone-slash');
 
-  if (classList.contains('fa-video-slash')) {
+  if (classList.contains('fa-microphone-slash')) {
+    console.log('if mic slash');
+    pauseMicrophone();
+    hide(microphoneSlashIcon);
+    unhide(microphoneIcon);
+  } else if (classList.contains('fa-microphone')) {
+    console.log('if mic');
+    unpauseMicrophone();
+    hide(microphoneIcon);
+    unhide(microphoneSlashIcon);
+  } else if (classList.contains('fa-video-slash')) {
+    console.log('if video slash');
     pauseWebcam();
     hide(videoSlashIcon);
     unhide(videoIcon);
   } else if (classList.contains('fa-video')) {
+    console.log('if video');
     unpauseWebcam();
     hide(videoIcon);
     unhide(videoSlashIcon);
   }
+}
+
+function pauseMicrophone() {
+  localStream.getAudioTracks().forEach(pauseTrack);
+}
+
+function unpauseMicrophone() {
+  localStream.getAudioTracks().forEach(unpauseTrack);
 }
 
 function pauseWebcam() {
@@ -148,7 +170,7 @@ function handleStartStream(room) {
 
 function startStream(room) {
   const userMediaParams = { 
-    // audio: { echoCancellation: true },
+    audio: { echoCancellation: true },
     video: { facingMode: 'user' }
   };
   navigator.mediaDevices.getUserMedia(userMediaParams)

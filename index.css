@@ -135,9 +135,26 @@ header {
   color: rgb(73, 171, 255);
 }
 
+#user-video-container {
+  position: relative;
+  margin-right: 2rem;
+}
+
 #user-video {
   width: 80px;
-  padding-right: 2rem;
+}
+
+#user-video-controls {
+  font-weight: 900;
+  background-color: rgba(255, 255, 255, 0.6);
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 0 2px 2px;
+}
+
+#user-video-controls .fas {
+  cursor: pointer;
 }
 
 main {

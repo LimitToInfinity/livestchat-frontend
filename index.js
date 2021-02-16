@@ -15,6 +15,8 @@ const peerConnectionConfig = {
 
 const title = document.querySelector('#title');
 const exitRoom = document.querySelector('#exit-room');
+const userVideoContainer = document.querySelector('#user-video-container');
+const userVideoControls = document.querySelector('#user-video-controls');
 const chatForm = document.querySelector('#chat-form');
 const chatInput = document.querySelector('input[name="message"]');
 const chatSubmit = document.querySelector('#chat-submit');
@@ -28,6 +30,41 @@ document.querySelector('#enter-app')
 rooms.addEventListener('click', handleEnteringRoom);
 exitRoom.addEventListener('click', leaveRoom);
 chatForm.addEventListener('submit', handleChatMessage);
+userVideoControls.addEventListener('click', handleVideoToggle);
+
+function handleVideoToggle(event) {
+  const { classList } = event.target;
+  const videoIcon = document.querySelector('.fa-video');
+  const videoSlashIcon = document.querySelector('.fa-video-slash');
+
+  if (classList.contains('fa-video-slash')) {
+    console.log('if');
+    pauseWebcam();
+    hide(videoSlashIcon);
+    unhide(videoIcon);
+  } else if (classList.contains('fa-video')) {
+    console.log('else if');
+    unpauseWebcam();
+    hide(videoIcon);
+    unhide(videoSlashIcon);
+  }
+}
+
+function pauseWebcam() {
+  localStream.getVideoTracks().forEach(pauseTrack);
+}
+
+function pauseTrack(track) {
+  track.enabled = false;
+}
+
+function unpauseWebcam() {
+  localStream.getVideoTracks().forEach(unpauseTrack);
+}
+
+function unpauseTrack(track) {
+  track.enabled = true;
+}
 
 function enterApp(event) {
   event.preventDefault();
@@ -162,7 +199,7 @@ function setupChatRoom(room) {
   enable(chatInput, chatSubmit);
 
   if (room === 'Video Chat') {
-    unhide(videos);
+    unhide(userVideoContainer, videos);
   }
 }
 
@@ -180,6 +217,10 @@ function leaveRoom(_) {
 
 function stopVideo() {
   document.querySelector('#user-video').srcObject = null;
+  stopWebcam();
+}
+
+function stopWebcam() {
   localStream.getVideoTracks().forEach(stopTrack);
 }
 
@@ -194,7 +235,7 @@ function unsetupChatRoom() {
 
   disable(chatInput, chatSubmit);
   unhide(rooms);
-  hide(exitRoom, messages, chatters, videos);
+  hide(exitRoom, messages, chatters, userVideoContainer, videos);
   clearHTML(messages, chatters);
 }
 
@@ -306,8 +347,8 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
   
     const videoUsername = document.createElement('h6');
     videoUsername.textContent = senderUsername;
-  
-    videoContainer.append(newVideo, videoUsername);
+
+    videoContainer.append(newVideo, videoUsername, videoControls);
     videos.append(videoContainer);
   }
 }

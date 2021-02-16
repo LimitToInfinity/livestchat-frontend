@@ -40,22 +40,18 @@ function handleVideoToggle(event) {
   const microphoneSlashIcon = document.querySelector('.fa-microphone-slash');
 
   if (classList.contains('fa-microphone-slash')) {
-    console.log('if mic slash');
     pauseMicrophone();
     hide(microphoneSlashIcon);
     unhide(microphoneIcon);
   } else if (classList.contains('fa-microphone')) {
-    console.log('if mic');
     unpauseMicrophone();
     hide(microphoneIcon);
     unhide(microphoneSlashIcon);
   } else if (classList.contains('fa-video-slash')) {
-    console.log('if video slash');
     pauseWebcam();
     hide(videoSlashIcon);
     unhide(videoIcon);
   } else if (classList.contains('fa-video')) {
-    console.log('if video');
     unpauseWebcam();
     hide(videoIcon);
     unhide(videoSlashIcon);

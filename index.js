@@ -8,7 +8,7 @@ const remotePeerConnections = {};
 const peerConnectionConfig = {
   iceServers: [
     {
-      urls: ["stun:stun.l.google.com:19302"]
+      urls: "stun:stun.1.google.com:19302"
     }
   ]
 };
@@ -157,16 +157,16 @@ function handleEnteringRoom(event) {
 }
 
 function handleStartStream(room) {
-  if (navigator.mediaDevices) {
-    startStream(room);
-  } else {
+  if (!navigator.mediaDevices || !window.RTCPeerConnection) {
     alert('User media is not supported in this browser.');
+  } else {
+    startStream(room);
   }
 }
 
 function startStream(room) {
   const userMediaParams = { 
-    // audio: true,
+    audio: { echoCancellation: true },
     video: { facingMode: 'user' }
   };
   navigator.mediaDevices.getUserMedia(userMediaParams)
@@ -176,6 +176,7 @@ function startStream(room) {
 
 function handleUserMedia(stream, room) {
   const userVideo = document.querySelector('#user-video');
+  userVideo.volume = 0;
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 

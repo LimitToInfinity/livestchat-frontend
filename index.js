@@ -270,14 +270,12 @@ function handleChatMessage(event) {
 }
 
 function connectToOtherUsers(otherUsers) {
-  console.log('other users', otherUsers);
   otherUsers.forEach(socketId => {
     handleLocalPeerConnection(socketId, 'initiation');
   });
 }
 
 function handleLocalPeerConnection(socketId, offerType) {
-  console.log('handle LPC', offerType);
   const localPeerConnection =
     createPeerConnection(socketId, localPeerConnections);
 
@@ -302,7 +300,6 @@ function addStreamTracks(localPeerConnection) {
 
 function emitCandidate({ candidate }, socketId, offerOrAnswer) {
   if (candidate) {
-    console.log('emit candidate', offerOrAnswer);
     socket.emit('candidate', candidate, socketId, offerOrAnswer);
   }
 }
@@ -318,7 +315,6 @@ function setupLocalConnection(localPeerConnection, socketId, offerType) {
 }
 
 function handleOffer(offer, socketId, username, offerType) {
-  console.log('handle offer', offerType);
   if (offerType === 'initiation') {
     handleLocalPeerConnection(socketId, 'return');
   }
@@ -327,7 +323,6 @@ function handleOffer(offer, socketId, username, offerType) {
 }
 
 function handleRemotePeerConnection(offer, socketId, username) {
-  console.log('handle RPC');
   const remotePeerConnection = 
     createPeerConnection(socketId, remotePeerConnections);
 
@@ -376,13 +371,11 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
 }
 
 function handleAnswer(answer, receiverSocketId) {
-  console.log('handle answer');
   localPeerConnections[receiverSocketId]
     .setRemoteDescription(answer);
 }
 
 function handleCandidate(candidate, socketId, offerOrAnswer) {
-  console.log('handle candidate', offerOrAnswer);
   const peerConnections = offerOrAnswer === 'offer'
     ? remotePeerConnections : localPeerConnections;
 

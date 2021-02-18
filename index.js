@@ -39,47 +39,47 @@ function handleVideoToggle(event) {
   const microphoneIcon = document.querySelector('.fa-microphone');
   const microphoneSlashIcon = document.querySelector('.fa-microphone-slash');
 
-  if (classList.contains('fa-microphone-slash')) {
-    pauseMicrophone();
-    hide(microphoneSlashIcon);
-    unhide(microphoneIcon);
-  } else if (classList.contains('fa-microphone')) {
-    unpauseMicrophone();
+  if (classList.contains('fa-microphone')) {
+    muteMicrophone();
     hide(microphoneIcon);
     unhide(microphoneSlashIcon);
-  } else if (classList.contains('fa-video-slash')) {
-    pauseWebcam();
-    hide(videoSlashIcon);
-    unhide(videoIcon);
+  } else if (classList.contains('fa-microphone-slash')) {
+    unmuteMicrophone();
+    hide(microphoneSlashIcon);
+    unhide(microphoneIcon);
   } else if (classList.contains('fa-video')) {
-    unpauseWebcam();
+    pauseWebcam();
     hide(videoIcon);
     unhide(videoSlashIcon);
+  } else if (classList.contains('fa-video-slash')) {
+    unpauseWebcam();
+    hide(videoSlashIcon);
+    unhide(videoIcon);
   }
 }
 
-function pauseMicrophone() {
+function muteMicrophone() {
   localStream.getAudioTracks().forEach(pauseTrack);
-}
-
-function unpauseMicrophone() {
-  localStream.getAudioTracks().forEach(unpauseTrack);
-}
-
-function pauseWebcam() {
-  localStream.getVideoTracks().forEach(pauseTrack);
 }
 
 function pauseTrack(track) {
   track.enabled = false;
 }
 
-function unpauseWebcam() {
-  localStream.getVideoTracks().forEach(unpauseTrack);
+function unmuteMicrophone() {
+  localStream.getAudioTracks().forEach(unpauseTrack);
 }
 
 function unpauseTrack(track) {
   track.enabled = true;
+}
+
+function pauseWebcam() {
+  localStream.getVideoTracks().forEach(pauseTrack);
+}
+
+function unpauseWebcam() {
+  localStream.getVideoTracks().forEach(unpauseTrack);
 }
 
 function enterApp(event) {

@@ -104,7 +104,7 @@ function setupSocket(username) {
   socket.on('offer', handleOffer);
   socket.on('answer', handleAnswer);
   socket.on('candidate', handleCandidate);
-  socket.on('disconnect video', handleDisconnectVideo);
+  socket.on('disconnect video', disconnectVideo);
 
   window.onunload = window.onbeforeunload = handleWindowUnload;
 }
@@ -281,11 +281,17 @@ function handleLocalPeerConnection(socketId, offerType) {
 
   addStreamTracks(localPeerConnection);
 
+  setupLocalConnection(localPeerConnection, socketId, offerType);
+  
   localPeerConnection.onicecandidate = event => {
     emitCandidate(event, socketId, 'offer');
   };
 
-  setupLocalConnection(localPeerConnection, socketId, offerType);
+  localPeerConnection.onnegotiationneeded = _ => {
+    if (localPeerConnection.signalingState !== 'stable') {
+      handleLocalPeerConnection(socketId, 'initiation');
+    }
+  };
 }
 
 function createPeerConnection(socketId, peerConnections) {
@@ -334,7 +340,7 @@ function handleRemotePeerConnection(offer, socketId, username) {
 
   remotePeerConnection.ontrack = (event) => {
     displayRemoteVideo(event, socketId, username);
-  }
+  };
 }
 
 function setupRemoteConnection(remotePeerConnection, offer, socketId) {
@@ -386,14 +392,33 @@ function handleCandidate(candidate, socketId, offerOrAnswer) {
     });
 }
 
-function handleDisconnectVideo(anotherSocketId) {
-  if (remotePeerConnections[anotherSocketId]) {
-    localPeerConnections[anotherSocketId].close();
-    delete localPeerConnections[anotherSocketId];
-    remotePeerConnections[anotherSocketId].close();
-    delete remotePeerConnections[anotherSocketId];
-    findVideoContainer(anotherSocketId).remove();
+function disconnectVideo(anotherSocketId) {
+  if (localPeerConnections[anotherSocketId]) {
+    closePeerConnection(localPeerConnections, anotherSocketId);
   }
+  if (remotePeerConnections[anotherSocketId]) {
+    closePeerConnection(remotePeerConnections, anotherSocketId);
+    const remoteVideo = findVideoContainer(anotherSocketId);
+    remoteVideo.removeAttribute('src');
+    remoteVideo.removeAttribute('srcObject');
+    remoteVideo.remove();
+  }
+}
+
+function closePeerConnection(peerConnections, socketId) {
+  const peerConnection = peerConnections[socketId];
+
+  peerConnection.ontrack = null;
+  peerConnection.onremovetrack = null;
+  peerConnection.onremovestream = null;
+  peerConnection.onicecandidate = null;
+  peerConnection.oniceconnectionstatechange = null;
+  peerConnection.onsignalingstatechange = null;
+  peerConnection.onicegatheringstatechange = null;
+  peerConnection.onnegotiationneeded = null;
+
+  peerConnection.close();
+  delete peerConnections[socketId];
 }
 
 function findVideoContainer(socketId) {

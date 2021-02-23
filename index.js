@@ -365,7 +365,6 @@ function displayRemoteVideo(event, senderSocketId, senderUsername) {
     const newVideo = document.createElement('video');
     newVideo.playsInline = 'playsinline';
     newVideo.autoplay = 'autoplay';
-    newVideo.muted = 'muted';
     newVideo.classList.add('peer-video');
     newVideo.srcObject = event.streams[0];
     // newVideo.play();

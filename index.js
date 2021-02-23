@@ -176,6 +176,7 @@ function startStream(room) {
 function handleUserMedia(stream, room) {
   const userVideo = document.querySelector('#user-video');
   userVideo.volume = 0;
+  userVideo.playsinline = 'playsinline';
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 

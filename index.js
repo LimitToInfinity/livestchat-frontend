@@ -164,8 +164,16 @@ function handleEnteringRoom(event) {
 }
 
 function startStream(room) {
+  const audioConstraints = {
+    echoCancellation: true,
+    sampleSize: 16,
+    sampleRate: 30000,
+    channelCount: 2,
+    autoGainControl: true,
+    noiseSuppression: true
+  }
   const userMediaParams = { 
-    audio: { echoCancellation: true },
+    audio: audioConstraints,
     video: { facingMode: 'user' }
   };
   navigator.mediaDevices.getUserMedia(userMediaParams)

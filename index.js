@@ -147,20 +147,19 @@ function findChatter(username) {
 function handleEnteringRoom(event) {
   const { classList, textContent, id } = event.target;
   const room = textContent.trim();
+  const isStreamNotCapable = !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia ||
+    !window.RTCPeerConnection;
 
   if (id === 'video-chat') {
-    handleStartStream(room);
-    enterRoom(room);
+    if (isStreamNotCapable) {
+      alert('User media is not supported in this browser.')
+    } else {
+      startStream(room);
+      enterRoom(room);
+    }
   } else if (classList.contains('room-selector')) {
     enterRoom(room);
-  }
-}
-
-function handleStartStream(room) {
-  if (!navigator.mediaDevices || !window.RTCPeerConnection) {
-    alert('User media is not supported in this browser.');
-  } else {
-    startStream(room);
   }
 }
 

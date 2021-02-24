@@ -6,6 +6,7 @@ let socket;
 let mySocketId;
 const localPeerConnections = {};
 const remotePeerConnections = {};
+const displayMediaConnections = {};
 const peerConnectionConfig = {
   iceServers: [
     {
@@ -143,7 +144,7 @@ function handleUserMedia(stream, room) {
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 
-  socket.emit('ask for users', room);
+  socket.emit('ask for users', room, 'user media');
 }
 
 function handleUserMediaError(error) {
@@ -326,7 +327,7 @@ function setupShareScreen() {
   unhide(displayMedia, stopScreenShare);
   screenShare.querySelector('span').textContent = 'Stop Screen Share';
   const { room } = chatForm.dataset;
-  socket.emit('display media', room);
+  socket.emit('ask for users', room, 'display media');
 }
 
 function unsetupScreenShare() {
@@ -343,22 +344,27 @@ function handleDisplayMediaError(error) {
   alert('Problem retrieving display stream, or did you disallow access?');
 }
 
-function connectToOtherUsers(otherUsers) {
+function connectToOtherUsers(otherUsers, mediaType) {
   otherUsers.forEach(socketId => {
-    handleLocalPeerConnection(socketId, 'initiation');
+    handleLocalPeerConnection(socketId, 'initiation', mediaType);
   });
 }
 
-function handleLocalPeerConnection(socketId, offerType) {
+function handleLocalPeerConnection(socketId, offerType, mediaType) {
+  const peerConnections = mediaType === 'user media'
+    ? localPeerConnections : displayMediaConnections;
+  const stream = mediaType === 'user media'
+    ? localStream : displayStream;
+
   const localPeerConnection =
-    createPeerConnection(socketId, localPeerConnections);
+    createPeerConnection(socketId, peerConnections);
 
-  addStreamTracks(localPeerConnection);
+  addStreamTracks(stream, localPeerConnection);
 
-  setupLocalConnection(localPeerConnection, socketId, offerType);
+  setupLocalConnection(localPeerConnection, socketId, offerType, mediaType);
   
   localPeerConnection.onicecandidate = event => {
-    emitCandidate(event, socketId, 'offer');
+    emitCandidate(event, socketId, 'offer', mediaType);
   };
 
   localPeerConnection.onnegotiationneeded = _ => {
@@ -373,92 +379,114 @@ function createPeerConnection(socketId, peerConnections) {
   return peerConnections[socketId] = peerConnection;
 }
 
-function addStreamTracks(localPeerConnection) {
-  localStream.getTracks()
-    .forEach(track => localPeerConnection.addTrack(track, localStream));
+function addStreamTracks(stream, localPeerConnection) {
+  stream.getTracks()
+    .forEach(track => localPeerConnection.addTrack(track, stream));
 }
 
-function emitCandidate({ candidate }, socketId, offerOrAnswer) {
+function emitCandidate({ candidate }, socketId, offerOrAnswer, mediaType) {
   if (candidate) {
-    socket.emit('candidate', candidate, socketId, offerOrAnswer);
+    socket.emit('candidate', candidate, socketId, offerOrAnswer, mediaType);
   }
 }
 
-function setupLocalConnection(localPeerConnection, socketId, offerType) {
+function setupLocalConnection(
+  localPeerConnection, socketId, offerType, mediaType
+) {
   localPeerConnection.createOffer()
     .then(sdp => localPeerConnection.setLocalDescription(sdp))
     .then(() => {
       const sdp = localPeerConnection.localDescription;
-      socket.emit('offer', sdp, socketId, offerType);
+      socket.emit('offer', sdp, socketId, offerType, mediaType);
     })
     .catch(error => console.error(`${offerType} offer error: ${error}`));
 }
 
-function handleOffer(offer, socketId, username, offerType) {
-  if (offerType === 'initiation') {
+function handleOffer(offer, socketId, username, offerType, mediaType) {
+  if (offerType === 'initiation' && mediaType === 'user media') {
     handleLocalPeerConnection(socketId, 'return');
   }
   
-  handleRemotePeerConnection(offer, socketId, username);
+  handleRemotePeerConnection(offer, socketId, username, mediaType);
 }
 
-function handleRemotePeerConnection(offer, socketId, username) {
-  const remotePeerConnection = 
-    createPeerConnection(socketId, remotePeerConnections);
+function handleRemotePeerConnection(offer, socketId, username, mediaType) {
+  const peerConnections = mediaType === 'user media'
+    ? remotePeerConnections : displayMediaConnections;
+  
+  const remotePeerConnection =
+    createPeerConnection(socketId, peerConnections);
 
-  setupRemoteConnection(remotePeerConnection, offer, socketId);
+  setupRemoteConnection(remotePeerConnection, offer, socketId, mediaType);
 
   remotePeerConnection.onicecandidate = (event) => {
-    emitCandidate(event, socketId, 'answer')
+    emitCandidate(event, socketId, 'answer', mediaType);
   };
 
   remotePeerConnection.ontrack = (event) => {
-    displayRemoteVideo(event, socketId, username);
+    displayRemoteVideo(event, socketId, username, mediaType);
   };
 }
 
-function setupRemoteConnection(remotePeerConnection, offer, socketId) {
+function setupRemoteConnection(
+  remotePeerConnection, offer, socketId, mediaType
+) {
   remotePeerConnection
     .setRemoteDescription(offer)
     .then(() => remotePeerConnection.createAnswer())
     .then(sdp => remotePeerConnection.setLocalDescription(sdp))
     .then(() => {
       const sdp = remotePeerConnection.localDescription;
-      socket.emit('answer', sdp, socketId);
+      socket.emit('answer', sdp, socketId, mediaType);
     })
     .catch(error => console.error(`answer error: ${error}`));
 }
 
-function displayRemoteVideo(event, senderSocketId, senderUsername) {
-  const sameRemoteVideo = findVideoContainer(senderSocketId);
-
-  if (!sameRemoteVideo) {
-    const videoContainer = document.createElement('div');
-    videoContainer.classList.add('video-container');
-    videoContainer.dataset.socketId = senderSocketId;
+function displayRemoteVideo(event, senderSocketId, senderUsername, mediaType) {
+  if (mediaType === 'user media') {
+    const sameRemoteVideo = findVideoContainer(senderSocketId);
   
-    const newVideo = document.createElement('video');
-    newVideo.playsInline = 'playsinline';
-    newVideo.classList.add('peer-video');
-    newVideo.srcObject = event.streams[0];
-    newVideo.play();
+    if (!sameRemoteVideo) {
+      const videoContainer = document.createElement('div');
+      videoContainer.classList.add('video-container');
+      videoContainer.dataset.socketId = senderSocketId;
+    
+      const newVideo = document.createElement('video');
+      newVideo.playsInline = 'playsinline';
+      newVideo.classList.add('peer-video');
+      newVideo.srcObject = event.streams[0];
+      newVideo.play();
+    
+      const videoUsername = document.createElement('h6');
+      videoUsername.textContent = senderUsername;
   
-    const videoUsername = document.createElement('h6');
-    videoUsername.textContent = senderUsername;
-
-    videoContainer.append(newVideo, videoUsername);
-    videos.append(videoContainer);
+      videoContainer.append(newVideo, videoUsername);
+      videos.append(videoContainer);
+    }
+  } else {
+    displayMedia.srcObject = event.streams[0];
+    displayMedia.removeAttribute('muted');
+    displayMedia.play();
+    unhide(displayMedia);
   }
+
 }
 
-function handleAnswer(answer, receiverSocketId) {
-  localPeerConnections[receiverSocketId]
-    .setRemoteDescription(answer);
+function handleAnswer(answer, receiverSocketId, mediaType) {
+  const peerConnections = mediaType === 'user media'
+    ? localPeerConnections : displayMediaConnections;
+
+  peerConnections[receiverSocketId].setRemoteDescription(answer);
 }
 
-function handleCandidate(candidate, socketId, offerOrAnswer) {
-  const peerConnections = offerOrAnswer === 'offer'
-    ? remotePeerConnections : localPeerConnections;
+function handleCandidate(candidate, socketId, offerOrAnswer, mediaType) {
+  let peerConnections;
+  if (mediaType === 'user media') {
+    peerConnections = offerOrAnswer === 'offer'
+      ? remotePeerConnections : localPeerConnections;
+  } else {
+    peerConnections = displayMediaConnections;
+  }
 
   peerConnections[socketId]
     .addIceCandidate(new RTCIceCandidate(candidate))

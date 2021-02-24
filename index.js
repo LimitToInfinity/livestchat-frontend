@@ -509,6 +509,9 @@ function disconnectVideo(anotherSocketId) {
   if (displayMediaConnections[anotherSocketId]) {
     closePeerConnection(displayMediaConnections, anotherSocketId);
     hide(displayMedia);
+    displayMedia.removeAttribute('src');
+    displayMedia.removeAttribute('srcObject');
+    displayStream.getTracks().forEach(track => track.stop());
     displayMedia.muted = 'muted';
   }
 }

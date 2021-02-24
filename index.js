@@ -506,6 +506,11 @@ function disconnectVideo(anotherSocketId) {
     remoteVideo.removeAttribute('srcObject');
     remoteVideo.remove();
   }
+  if (displayMediaConnections[anotherSocketId]) {
+    closePeerConnection(displayMediaConnections, anotherSocketId);
+    hide(displayMedia);
+    displayMedia.muted = 'muted';
+  }
 }
 
 function closePeerConnection(peerConnections, socketId) {
@@ -538,6 +543,7 @@ function handleWindowUnload() {
 function closePeerConnections() {
   closeAndDeleteAll(localPeerConnections);
   closeAndDeleteAll(remotePeerConnections);
+  closeAndDeleteAll(displayMediaConnections);
 }
 
 function closeAndDeleteAll(connections) {

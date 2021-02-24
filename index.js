@@ -339,7 +339,7 @@ function unsetupScreenShare() {
   displayStream.getTracks().forEach(track => track.stop());
   hide(displayMedia, stopScreenShare);
   unhide(startScreenShare);
-  screenShare.querySelector('span').textContent = 'Screen Share';
+  screenShare.querySelector('span').textContent = 'Share Screen';
 }
 
 function handleDisplayMediaError(error) {

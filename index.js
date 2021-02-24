@@ -540,7 +540,6 @@ function closeRemoteShareScreen(socketId) {
   hide(displayMedia);
   displayMedia.removeAttribute('src');
   displayMedia.removeAttribute('srcObject');
-  displayStream.getTracks().forEach(track => track.stop());
   displayMedia.muted = 'muted';
 }
 

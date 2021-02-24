@@ -380,6 +380,7 @@ function createPeerConnection(socketId, peerConnections) {
 }
 
 function addStreamTracks(stream, localPeerConnection) {
+  console.log('stream', stream);
   stream.getTracks()
     .forEach(track => localPeerConnection.addTrack(track, stream));
 }
@@ -404,7 +405,7 @@ function setupLocalConnection(
 
 function handleOffer(offer, socketId, username, offerType, mediaType) {
   if (offerType === 'initiation' && mediaType === 'user media') {
-    handleLocalPeerConnection(socketId, 'return');
+    handleLocalPeerConnection(socketId, 'return', 'user media');
   }
   
   handleRemotePeerConnection(offer, socketId, username, mediaType);

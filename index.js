@@ -311,7 +311,6 @@ function shareScreen() {
 
   } else {
     unsetupScreenShare();
-    socket.emit('stop screen share');
   }
 }
 
@@ -333,6 +332,8 @@ function setupShareScreen() {
 }
 
 function unsetupScreenShare() {
+  socket.emit('stop screen share');
+
   displayMedia.removeAttribute('src');
   displayMedia.removeAttribute('srcObject');
   displayStream.getTracks().forEach(track => track.stop());

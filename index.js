@@ -62,6 +62,7 @@ function setupSocket(username) {
   socket.on('answer', handleAnswer);
   socket.on('candidate', handleCandidate);
   socket.on('disconnect video', disconnectVideo);
+  socket.on('stop screen share', closeRemoteShareScreen);
 
   window.onunload = window.onbeforeunload = handleWindowUnload;
 }
@@ -310,6 +311,7 @@ function shareScreen() {
 
   } else {
     unsetupScreenShare();
+    socket.emit('stop screen share');
   }
 }
 
@@ -508,12 +510,7 @@ function disconnectVideo(anotherSocketId) {
     remoteVideo.remove();
   }
   if (displayMediaConnections[anotherSocketId]) {
-    closePeerConnection(displayMediaConnections, anotherSocketId);
-    hide(displayMedia);
-    displayMedia.removeAttribute('src');
-    displayMedia.removeAttribute('srcObject');
-    displayStream.getTracks().forEach(track => track.stop());
-    displayMedia.muted = 'muted';
+    closeRemoteShareScreen(anotherSocketId);
   }
 }
 
@@ -537,6 +534,15 @@ function findVideoContainer(socketId) {
   return document.querySelector(
     `.video-container[data-socket-id="${socketId}"]`
   );
+}
+
+function closeRemoteShareScreen(socketId) {
+  closePeerConnection(displayMediaConnections, socketId);
+  hide(displayMedia);
+  displayMedia.removeAttribute('src');
+  displayMedia.removeAttribute('srcObject');
+  displayStream.getTracks().forEach(track => track.stop());
+  displayMedia.muted = 'muted';
 }
 
 function handleWindowUnload() {

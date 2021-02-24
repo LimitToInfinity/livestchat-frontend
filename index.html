@@ -48,7 +48,7 @@
     </header>
 
     <main>
-      <aside>
+      <aside id="chat-room-aside">
         <ul id="rooms">
           <li><button class="room-selector">Food</button></li>
           <li><button class="room-selector">Games</button></li>
@@ -58,8 +58,18 @@
           </button></li>
         </ul>
         <ul id="chatters" class="hidden"></ul>
+        <button id="screen-share" class="hidden">
+          <span>Share Screen</span>
+          <i class="fas fa-desktop"></i>
+          <i class="far fa-eye-slash hidden"></i>
+        </button>
       </aside>
-      <ul id="videos" class="hidden"></ul>
+      <ul id="videos" class="hidden">
+        <li>
+          <video id="display-media" class="hidden" muted playsinline>
+          </video>
+        </li>
+      </ul>
       <ul id="messages" class="hidden"></ul>
     </main>
 

@@ -1,6 +1,7 @@
 const backendURL = 'https://livestchat.herokuapp.com/';
 
 let localStream;
+let displayStream;
 let socket;
 let mySocketId;
 const localPeerConnections = {};
@@ -8,7 +9,7 @@ const remotePeerConnections = {};
 const peerConnectionConfig = {
   iceServers: [
     {
-      urls: ["stun:stun.l.google.com:19302"]
+      urls: ['stun:stun.l.google.com:19302']
     }
   ]
 };
@@ -22,8 +23,12 @@ const chatInput = document.querySelector('input[name="message"]');
 const chatSubmit = document.querySelector('#chat-submit');
 const rooms = document.querySelector('#rooms');
 const chatters = document.querySelector('#chatters');
+const screenShare = document.querySelector('#screen-share');
+const startScreenShare = document.querySelector('.fas.fa-desktop');
+const stopScreenShare = document.querySelector('.far.fa-eye-slash');
 const messages = document.querySelector('#messages');
 const videos = document.querySelector('#videos');
+const displayMedia = document.querySelector('#display-media');
 
 document.querySelector('#enter-app')
   .addEventListener('submit', enterApp);
@@ -31,56 +36,7 @@ rooms.addEventListener('click', handleEnteringRoom);
 exitRoom.addEventListener('click', leaveRoom);
 chatForm.addEventListener('submit', handleChatMessage);
 userVideoControls.addEventListener('click', handleVideoToggle);
-
-function handleVideoToggle(event) {
-  const { classList } = event.target;
-  const videoIcon = document.querySelector('.fa-video');
-  const videoSlashIcon = document.querySelector('.fa-video-slash');
-  const microphoneIcon = document.querySelector('.fa-microphone');
-  const microphoneSlashIcon = document.querySelector('.fa-microphone-slash');
-
-  if (classList.contains('fa-microphone')) {
-    muteMicrophone();
-    hide(microphoneIcon);
-    unhide(microphoneSlashIcon);
-  } else if (classList.contains('fa-microphone-slash')) {
-    unmuteMicrophone();
-    hide(microphoneSlashIcon);
-    unhide(microphoneIcon);
-  } else if (classList.contains('fa-video')) {
-    pauseWebcam();
-    hide(videoIcon);
-    unhide(videoSlashIcon);
-  } else if (classList.contains('fa-video-slash')) {
-    unpauseWebcam();
-    hide(videoSlashIcon);
-    unhide(videoIcon);
-  }
-}
-
-function muteMicrophone() {
-  localStream.getAudioTracks().forEach(pauseTrack);
-}
-
-function pauseTrack(track) {
-  track.enabled = false;
-}
-
-function unmuteMicrophone() {
-  localStream.getAudioTracks().forEach(unpauseTrack);
-}
-
-function unpauseTrack(track) {
-  track.enabled = true;
-}
-
-function pauseWebcam() {
-  localStream.getVideoTracks().forEach(pauseTrack);
-}
-
-function unpauseWebcam() {
-  localStream.getVideoTracks().forEach(unpauseTrack);
-}
+screenShare.addEventListener('click', shareScreen);
 
 function enterApp(event) {
   event.preventDefault();
@@ -153,7 +109,7 @@ function handleEnteringRoom(event) {
 
   if (id === 'video-chat') {
     if (isStreamNotCapable) {
-      alert('User media is not supported in this browser.')
+      alert('User media is not supported in this browser.');
     } else {
       startStream(room);
       enterRoom(room);
@@ -171,7 +127,7 @@ function startStream(room) {
     channelCount: 2,
     autoGainControl: true,
     noiseSuppression: true
-  }
+  };
   const userMediaParams = { 
     audio: audioConstraints,
     video: { facingMode: 'user' }
@@ -219,7 +175,7 @@ function setupChatRoom(room) {
   title.textContent = room;
 
   hide(rooms);
-  unhide(exitRoom, messages);
+  unhide(exitRoom, messages, screenShare);
   enable(chatInput, chatSubmit);
 
   if (room === 'Video Chat') {
@@ -259,7 +215,7 @@ function unsetupChatRoom() {
 
   disable(chatInput, chatSubmit);
   unhide(rooms);
-  hide(exitRoom, messages, chatters, userVideoContainer, videos);
+  hide(exitRoom, messages, chatters, screenShare, userVideoContainer, videos);
   clearHTML(messages, chatters);
 }
 
@@ -274,6 +230,117 @@ function handleChatMessage(event) {
     displayMessage(message, username, true);
     event.target.reset();
   }
+}
+
+function handleVideoToggle(event) {
+  const { classList } = event.target;
+  const videoIcon = document.querySelector('.fa-video');
+  const videoSlashIcon = document.querySelector('.fa-video-slash');
+  const microphoneIcon = document.querySelector('.fa-microphone');
+  const microphoneSlashIcon = document.querySelector('.fa-microphone-slash');
+
+  if (classList.contains('fa-microphone')) {
+    muteMicrophone();
+    hide(microphoneIcon);
+    unhide(microphoneSlashIcon);
+  } else if (classList.contains('fa-microphone-slash')) {
+    unmuteMicrophone();
+    hide(microphoneSlashIcon);
+    unhide(microphoneIcon);
+  } else if (classList.contains('fa-video')) {
+    pauseWebcam();
+    hide(videoIcon);
+    unhide(videoSlashIcon);
+  } else if (classList.contains('fa-video-slash')) {
+    unpauseWebcam();
+    hide(videoSlashIcon);
+    unhide(videoIcon);
+  }
+}
+
+function muteMicrophone() {
+  localStream.getAudioTracks().forEach(pauseTrack);
+}
+
+function pauseTrack(track) {
+  track.enabled = false;
+}
+
+function unmuteMicrophone() {
+  localStream.getAudioTracks().forEach(unpauseTrack);
+}
+
+function unpauseTrack(track) {
+  track.enabled = true;
+}
+
+function pauseWebcam() {
+  localStream.getVideoTracks().forEach(pauseTrack);
+}
+
+function unpauseWebcam() {
+  localStream.getVideoTracks().forEach(unpauseTrack);
+}
+
+function shareScreen() {
+  if (stopScreenShare.classList.contains('hidden')) {
+
+    const isScreenShareNotCapable = !navigator.mediaDevices ||
+      !navigator.mediaDevices.getDisplayMedia ||
+      !window.RTCPeerConnection;
+    if (isScreenShareNotCapable) {
+      alert('Screen share is not supported in this browser.');
+    } else {
+      const displayMediaConstraints = {
+        video: { cursor: 'motion' },
+        audio: {
+          echoCancellation: true,
+          sampleSize: 16,
+          sampleRate: 30000,
+          channelCount: 2,
+          autoGainControl: true,
+          noiseSuppression: true
+        }
+      };
+      navigator.mediaDevices.getDisplayMedia(displayMediaConstraints)
+        .then(handleDisplayMedia)
+        .catch(handleDisplayMediaError);
+    }
+
+  } else {
+    unsetupScreenShare();
+  }
+}
+
+function handleDisplayMedia(stream) {
+  displayMedia.volume = 0;
+  displayMedia.srcObject = displayStream = stream;
+  displayMedia.onloadedmetadata = _ => displayMedia.play();
+  displayStream.getTracks()[0].onended = unsetupScreenShare;
+
+  setupShareScreen();
+}
+
+function setupShareScreen() {
+  hide(startScreenShare);
+  unhide(displayMedia, stopScreenShare);
+  screenShare.querySelector('span').textContent = 'Stop Screen Share';
+  const { room } = chatForm.dataset;
+  socket.emit('display media', room);
+}
+
+function unsetupScreenShare() {
+  displayMedia.removeAttribute('src');
+  displayMedia.removeAttribute('srcObject');
+  displayStream.getTracks().forEach(track => track.stop());
+  hide(displayMedia, stopScreenShare);
+  unhide(startScreenShare);
+  screenShare.querySelector('span').textContent = 'Screen Share';
+}
+
+function handleDisplayMediaError(error) {
+  console.error(`get user media error: ${error}`);
+  alert('Problem retrieving display stream, or did you disallow access?');
 }
 
 function connectToOtherUsers(otherUsers) {

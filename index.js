@@ -382,7 +382,6 @@ function createPeerConnection(socketId, peerConnections) {
 }
 
 function addStreamTracks(stream, localPeerConnection) {
-  console.log('stream', stream);
   stream.getTracks()
     .forEach(track => localPeerConnection.addTrack(track, stream));
 }

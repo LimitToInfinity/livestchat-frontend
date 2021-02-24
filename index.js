@@ -192,6 +192,13 @@ function leaveRoom(_) {
     stopVideo();
     closePeerConnections();
     clearHTML(videos);
+    const displayMediaContainer = document.createElement('li');
+    displayMediaContainer.append(displayMedia);
+    videos.append(displayMediaContainer);
+
+    if (displayMedia.srcObject) {
+      unsetupScreenShare();
+    }
   }
 
   unsetupChatRoom();
@@ -450,7 +457,7 @@ function displayRemoteVideo(event, senderSocketId, senderUsername, mediaType) {
     const sameRemoteVideo = findVideoContainer(senderSocketId);
   
     if (!sameRemoteVideo) {
-      const videoContainer = document.createElement('div');
+      const videoContainer = document.createElement('li');
       videoContainer.classList.add('video-container');
       videoContainer.dataset.socketId = senderSocketId;
     

@@ -486,6 +486,8 @@ function handleAnswer(answer, receiverSocketId, shareType) {
 
 function handleCandidate(candidate, socketId, shareType) {
   const peerConnections = determinePeerConnections(shareType);
+  console.log('peer connections', peerConnections);
+  console.log('socketId', socketId);
 
   if (peerConnections) {
     peerConnections[socketId]
@@ -501,9 +503,9 @@ function handleCandidate(candidate, socketId, shareType) {
 function determinePeerConnections(shareType) {
   switch (shareType) {
     case ('initiation'):
-      return remotePeerConnections;
-    case ('return'):
       return localPeerConnections;
+      case ('return'):
+      return remotePeerConnections;
     case ('screen share'):
       return displayMediaConnections;
     default:

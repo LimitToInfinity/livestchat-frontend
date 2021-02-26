@@ -503,7 +503,7 @@ function determinePeerConnections(shareType) {
     case ('initiation'):
       return remotePeerConnections;
     case ('return'):
-      return localPeerConections;
+      return localPeerConnections;
     case ('screen share'):
       return displayMediaConnections;
     default:

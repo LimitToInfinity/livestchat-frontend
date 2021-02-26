@@ -346,7 +346,7 @@ function unsetupScreenShare() {
   displayStream.getTracks().forEach(track => track.stop());
   hide(displayMedia, stopScreenShare);
   unhide(startScreenShare);
-  screenShare.querySelector('span').textContent = 'Share Screen';
+  screenShare.querySelector('span').textContent = 'Share screen';
 }
 
 function handleDisplayMediaError(error) {
@@ -361,9 +361,9 @@ function connectToOtherUsers(otherUsers, shareType) {
 }
 
 function handleLocalPeerConnection(socketId, shareType) {
-  const peerConnections = shareType === 'share screen'
+  const peerConnections = shareType === 'screen share'
     ? displayMediaConnections : localPeerConnections;
-  const stream = shareType === 'share screen'
+  const stream = shareType === 'screen share'
     ? displayStream : localStream;
 
   const localPeerConnection =
@@ -419,7 +419,7 @@ function handleOffer(offer, socketId, username, shareType) {
 }
 
 function handleRemotePeerConnection(offer, socketId, username, shareType) {
-  const peerConnections = shareType === 'share screen'
+  const peerConnections = shareType === 'screen share'
     ? displayMediaConnections : remotePeerConnections;
   
   const remotePeerConnection =
@@ -449,7 +449,7 @@ function setupRemoteConnection(remotePeerConnection, offer, socketId, shareType)
 }
 
 function displayRemoteVideo(event, senderSocketId, senderUsername, shareType) {
-  if (shareType === 'share screen') {
+  if (shareType === 'screen share') {
     displayMedia.srcObject = event.streams[0];
     displayMedia.removeAttribute('muted');
     displayMedia.play();
@@ -478,7 +478,7 @@ function displayRemoteVideo(event, senderSocketId, senderUsername, shareType) {
 }
 
 function handleAnswer(answer, receiverSocketId, shareType) {
-  const peerConnections = shareType === 'share screen'
+  const peerConnections = shareType === 'screen share'
     ? displayMediaConnections : localPeerConnections;
 
   peerConnections[receiverSocketId].setRemoteDescription(answer);

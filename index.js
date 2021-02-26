@@ -454,6 +454,7 @@ function displayRemoteVideo(event, senderSocketId, senderUsername, shareType) {
     displayMedia.removeAttribute('muted');
     displayMedia.play();
     unhide(displayMedia);
+    disable(screenShare);
   } else {
     const sameRemoteVideo = findVideoContainer(senderSocketId);
   
@@ -553,6 +554,7 @@ function findVideoContainer(socketId) {
 function closeRemoteShareScreen(socketId) {
   closePeerConnection(displayMediaConnections, socketId);
   hide(displayMedia);
+  enable(screenShare);
   displayMedia.removeAttribute('src');
   displayMedia.removeAttribute('srcObject');
   displayMedia.muted = 'muted';

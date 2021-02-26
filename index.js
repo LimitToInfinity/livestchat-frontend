@@ -491,7 +491,7 @@ function handleCandidate(candidate, socketId, shareType) {
     peerConnections[socketId]
       .addIceCandidate(new RTCIceCandidate(candidate))
       .catch(error => {
-        console.error(`add ice candidate ${offerOrAnswer} error: ${error}`);
+        console.error(`add ice candidate ${shareType} error: ${error}`);
       });
   } else {
     console.error(`${shareType} handle candidate error`);

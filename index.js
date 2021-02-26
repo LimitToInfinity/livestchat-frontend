@@ -145,7 +145,7 @@ function handleUserMedia(stream, room) {
   userVideo.srcObject = localStream = stream;
   userVideo.onloadedmetadata = _ => userVideo.play();
 
-  socket.emit('ask for users', room, 'user media');
+  socket.emit('get users', room, 'initiation');
 }
 
 function handleUserMediaError(error) {
@@ -335,7 +335,7 @@ function setupShareScreen() {
   unhide(displayMedia, stopScreenShare);
   screenShare.querySelector('span').textContent = 'Stop Screen Share';
   const { room } = chatForm.dataset;
-  socket.emit('ask for users', room, 'display media');
+  socket.emit('get users', room, 'screen share');
 }
 
 function unsetupScreenShare() {
@@ -354,27 +354,27 @@ function handleDisplayMediaError(error) {
   alert('Problem retrieving display stream, or did you disallow access?');
 }
 
-function connectToOtherUsers(otherUsers, mediaType) {
+function connectToOtherUsers(otherUsers, shareType) {
   otherUsers.forEach(socketId => {
-    handleLocalPeerConnection(socketId, 'initiation', mediaType);
+    handleLocalPeerConnection(socketId, shareType);
   });
 }
 
-function handleLocalPeerConnection(socketId, offerType, mediaType) {
-  const peerConnections = mediaType === 'user media'
-    ? localPeerConnections : displayMediaConnections;
-  const stream = mediaType === 'user media'
-    ? localStream : displayStream;
+function handleLocalPeerConnection(socketId, shareType) {
+  const peerConnections = shareType === 'share screen'
+    ? displayMediaConnections : localPeerConnections;
+  const stream = shareType === 'share screen'
+    ? displayStream : localStream;
 
   const localPeerConnection =
     createPeerConnection(socketId, peerConnections);
 
   addStreamTracks(stream, localPeerConnection);
 
-  setupLocalConnection(localPeerConnection, socketId, offerType, mediaType);
+  setupLocalConnection(localPeerConnection, socketId, shareType);
   
   localPeerConnection.onicecandidate = event => {
-    emitCandidate(event, socketId, 'offer', mediaType);
+    emitCandidate(event, socketId, shareType);
   };
 
   localPeerConnection.onnegotiationneeded = _ => {
@@ -394,66 +394,67 @@ function addStreamTracks(stream, localPeerConnection) {
     .forEach(track => localPeerConnection.addTrack(track, stream));
 }
 
-function emitCandidate({ candidate }, socketId, offerOrAnswer, mediaType) {
-  if (candidate) {
-    socket.emit('candidate', candidate, socketId, offerOrAnswer, mediaType);
-  }
-}
-
-function setupLocalConnection(
-  localPeerConnection, socketId, offerType, mediaType
-) {
+function setupLocalConnection(localPeerConnection, socketId, shareType) {
   localPeerConnection.createOffer()
     .then(sdp => localPeerConnection.setLocalDescription(sdp))
     .then(() => {
       const sdp = localPeerConnection.localDescription;
-      socket.emit('offer', sdp, socketId, offerType, mediaType);
+      socket.emit('offer', sdp, socketId, shareType);
     })
-    .catch(error => console.error(`${offerType} offer error: ${error}`));
+    .catch(error => console.error(`${shareType} offer error: ${error}`));
 }
 
-function handleOffer(offer, socketId, username, offerType, mediaType) {
-  if (offerType === 'initiation' && mediaType === 'user media') {
-    handleLocalPeerConnection(socketId, 'return', 'user media');
+function emitCandidate({ candidate }, socketId, shareType) {
+  if (candidate) {
+    socket.emit('candidate', candidate, socketId, shareType);
+  }
+}
+
+function handleOffer(offer, socketId, username, shareType) {
+  if (shareType === 'initiation') {
+    handleLocalPeerConnection(socketId, 'return');
   }
   
-  handleRemotePeerConnection(offer, socketId, username, mediaType);
+  handleRemotePeerConnection(offer, socketId, username, shareType);
 }
 
-function handleRemotePeerConnection(offer, socketId, username, mediaType) {
-  const peerConnections = mediaType === 'user media'
-    ? remotePeerConnections : displayMediaConnections;
+function handleRemotePeerConnection(offer, socketId, username, shareType) {
+  const peerConnections = shareType === 'share screen'
+    ? displayMediaConnections : remotePeerConnections;
   
   const remotePeerConnection =
     createPeerConnection(socketId, peerConnections);
 
-  setupRemoteConnection(remotePeerConnection, offer, socketId, mediaType);
+  setupRemoteConnection(remotePeerConnection, offer, socketId, shareType);
 
   remotePeerConnection.onicecandidate = (event) => {
-    emitCandidate(event, socketId, 'answer', mediaType);
+    emitCandidate(event, socketId, shareType);
   };
 
   remotePeerConnection.ontrack = (event) => {
-    displayRemoteVideo(event, socketId, username, mediaType);
+    displayRemoteVideo(event, socketId, username, shareType);
   };
 }
 
-function setupRemoteConnection(
-  remotePeerConnection, offer, socketId, mediaType
-) {
+function setupRemoteConnection(remotePeerConnection, offer, socketId, shareType) {
   remotePeerConnection
     .setRemoteDescription(offer)
     .then(() => remotePeerConnection.createAnswer())
     .then(sdp => remotePeerConnection.setLocalDescription(sdp))
     .then(() => {
       const sdp = remotePeerConnection.localDescription;
-      socket.emit('answer', sdp, socketId, mediaType);
+      socket.emit('answer', sdp, socketId, shareType);
     })
     .catch(error => console.error(`answer error: ${error}`));
 }
 
-function displayRemoteVideo(event, senderSocketId, senderUsername, mediaType) {
-  if (mediaType === 'user media') {
+function displayRemoteVideo(event, senderSocketId, senderUsername, shareType) {
+  if (shareType === 'share screen') {
+    displayMedia.srcObject = event.streams[0];
+    displayMedia.removeAttribute('muted');
+    displayMedia.play();
+    unhide(displayMedia);
+  } else {
     const sameRemoteVideo = findVideoContainer(senderSocketId);
   
     if (!sameRemoteVideo) {
@@ -473,36 +474,41 @@ function displayRemoteVideo(event, senderSocketId, senderUsername, mediaType) {
       videoContainer.append(newVideo, videoUsername);
       videos.append(videoContainer);
     }
-  } else {
-    displayMedia.srcObject = event.streams[0];
-    displayMedia.removeAttribute('muted');
-    displayMedia.play();
-    unhide(displayMedia);
   }
-
 }
 
-function handleAnswer(answer, receiverSocketId, mediaType) {
-  const peerConnections = mediaType === 'user media'
-    ? localPeerConnections : displayMediaConnections;
+function handleAnswer(answer, receiverSocketId, shareType) {
+  const peerConnections = shareType === 'share screen'
+    ? displayMediaConnections : localPeerConnections;
 
   peerConnections[receiverSocketId].setRemoteDescription(answer);
 }
 
-function handleCandidate(candidate, socketId, offerOrAnswer, mediaType) {
-  let peerConnections;
-  if (mediaType === 'user media') {
-    peerConnections = offerOrAnswer === 'offer'
-      ? remotePeerConnections : localPeerConnections;
-  } else {
-    peerConnections = displayMediaConnections;
-  }
+function handleCandidate(candidate, socketId, shareType) {
+  const peerConnections = determinePeerConnections(shareType);
 
-  peerConnections[socketId]
-    .addIceCandidate(new RTCIceCandidate(candidate))
-    .catch(error => {
-      console.error(`add ice candidate ${offerOrAnswer} error: ${error}`);
-    });
+  if (peerConnections) {
+    peerConnections[socketId]
+      .addIceCandidate(new RTCIceCandidate(candidate))
+      .catch(error => {
+        console.error(`add ice candidate ${offerOrAnswer} error: ${error}`);
+      });
+  } else {
+    console.error(`${shareType} handle candidate error`);
+  }
+}
+
+function determinePeerConnections(shareType) {
+  switch (shareType) {
+    case ('initiation'):
+      return remotePeerConnections;
+    case ('return'):
+      return localPeerConections;
+    case ('screen share'):
+      return displayMediaConnections;
+    default:
+      return undefined;
+  }
 }
 
 function disconnectVideo(anotherSocketId) {

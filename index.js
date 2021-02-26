@@ -428,7 +428,7 @@ function handleRemotePeerConnection(offer, socketId, username, shareType) {
   setupRemoteConnection(remotePeerConnection, offer, socketId, shareType);
 
   remotePeerConnection.onicecandidate = (event) => {
-    emitCandidate(event, socketId, shareType);
+    emitCandidate(event, socketId, 'answer');
   };
 
   remotePeerConnection.ontrack = (event) => {
@@ -486,8 +486,6 @@ function handleAnswer(answer, receiverSocketId, shareType) {
 
 function handleCandidate(candidate, socketId, shareType) {
   const peerConnections = determinePeerConnections(shareType);
-  console.log('peer connections', peerConnections);
-  console.log('socketId', socketId);
 
   if (peerConnections) {
     peerConnections[socketId]
@@ -503,9 +501,10 @@ function handleCandidate(candidate, socketId, shareType) {
 function determinePeerConnections(shareType) {
   switch (shareType) {
     case ('initiation'):
-      return localPeerConnections;
-      case ('return'):
+    case ('return'):
       return remotePeerConnections;
+    case ('answer'):
+      return localPeerConnections;
     case ('screen share'):
       return displayMediaConnections;
     default:
